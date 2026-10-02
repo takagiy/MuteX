@@ -132,3 +132,40 @@ test('search typeahead suggestions', () => {
   expect(d.users.length).toBe(1); // users are not filtered, like X's own mute
   expect(d.num_results).toBe(2);
 });
+
+test('TweetDetail: replies and "Discover more"', () => {
+  const focal = tweet({ text: 'the post you opened' });
+  const related = (texts) => {
+    const e = moduleEntry(texts.map((text) => tweet({ text })), 'tweetdetailrelatedtweets');
+    e.content.displayType = 'Vertical';
+    e.content.header = { text: 'Discover more' };
+    return e;
+  };
+  const d = {
+    data: {
+      threaded_conversation_with_injections_v2: {
+        instructions: [
+          {
+            type: 'TimelineAddEntries',
+            entries: [
+              tweetEntry(focal),
+              moduleEntry([tweet({ text: 'reply with spoiler' }), tweet({ text: 'its follow-up' })], 'conversationthread'),
+              moduleEntry([tweet({ text: 'nice reply' })], 'conversationthread'),
+              related(['related one', 'related spoiler', 'related three']),
+            ],
+          },
+          // "Show more" inside Discover more, and a related list that ends up empty
+          { type: 'TimelineAddToModule', moduleItems: [moduleEntry([tweet({ text: 'more spoiler' })]).content.items[0]] },
+        ],
+      },
+    },
+  };
+  const ins = d.data.threaded_conversation_with_injections_v2.instructions;
+  ins[0].entries.push(related(['all spoiler']));
+  core.filterPayload(d, core.compile(rulesOf(['spoiler'])));
+  const ids = ins[0].entries.map((e) => e.entryId.split('-')[0]);
+  expect(ids).toEqual(['tweet', 'conversationthread', 'tweetdetailrelatedtweets']); // spoiler thread + empty related list gone
+  const discover = ins[0].entries[2].content.items.map((i) => i.item.itemContent.tweet_results.result.legacy.full_text);
+  expect(discover).toEqual(['related one', 'related three']); // only the matching related post is removed
+  expect(ins.some((i) => i.moduleItems)).toBe(false);
+});

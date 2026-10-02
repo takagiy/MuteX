@@ -165,6 +165,22 @@
     return muted;
   }
 
+  // A conversation module (home-conversation-*, conversationthread-*) is dropped as a whole when any tweet
+  // in it matches; dropping just one item would leave a dangling thread line.
+  // Other modules are lists of independent items ("Discover more" under a post, carousels): only the matching
+  // items go, and the module goes too once it is empty so no bare header is left.
+  function entryMuted(e, ctx) {
+    if (isCursor(e)) return false;
+    const c = e?.content;
+    if (Array.isArray(c?.items) && c.items.length && !/Conversation/.test(c.displayType || '')) {
+      const before = c.items.length;
+      c.items = c.items.filter((it) => !subtreeMuted(it, ctx));
+      ctx.removedItems += before - c.items.length;
+      return c.items.length === 0;
+    }
+    return subtreeMuted(e, ctx);
+  }
+
   function filterInstructions(instructions, ctx) {
     let removed = 0;
     for (let i = instructions.length - 1; i >= 0; i--) {
@@ -172,9 +188,7 @@
       if (!ins || typeof ins !== 'object') continue;
       if (Array.isArray(ins.entries)) {
         const before = ins.entries.length;
-        // A conversation module (home-conversation-*, conversationthread-*) is dropped as a whole when any
-        // tweet in it matches; dropping just one item would leave a dangling thread line.
-        ins.entries = ins.entries.filter((e) => isCursor(e) || !subtreeMuted(e, ctx));
+        ins.entries = ins.entries.filter((e) => !entryMuted(e, ctx));
         removed += before - ins.entries.length;
       }
       if (Array.isArray(ins.moduleItems)) {
@@ -256,7 +270,7 @@
   // Mutates obj in place. Returns number of removed timeline entries/items.
   function filterPayload(obj, m, opts = {}) {
     if (!obj || typeof obj !== 'object' || isEmpty(m)) return 0;
-    const ctx = { m, selfId: opts.selfId || null, exempt: opts.exempt || new Set() };
+    const ctx = { m, selfId: opts.selfId || null, exempt: opts.exempt || new Set(), removedItems: 0 };
     let removed = filterLegacyV2(obj, ctx) + filterTypeahead(obj, ctx);
     const seen = new Set();
     const visit = (o, depth) => {
@@ -270,7 +284,7 @@
       }
     };
     visit(obj, 0);
-    return removed;
+    return removed + ctx.removedItems;
   }
 
   // X's mute-list API -> our rule format

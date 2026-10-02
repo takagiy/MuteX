@@ -42,7 +42,7 @@ Load the cloned folder with **Load unpacked** as above.
 
 - Applies to GraphQL / v2 timeline responses: home, replies, search, profiles, notifications, lists, bookmarks, trends, and Explore news cards. It also covers search-box suggestions (topics, hashtags, and events; accounts are left alone, the same as X's own mute).
 - Each timeline entry is checked for every tweet inside it: the post text (including long-form note text), quoted posts, retweeted originals, link-card titles and descriptions, and article titles.
-- If any tweet in a conversation module matches, the whole module is dropped, so no broken thread line is left behind.
+- If any tweet in a conversation module (a reply thread) matches, the whole module is dropped, so no broken thread line is left behind. In list-style modules such as **Discover more** under a post, only the matching posts are removed. If none are left, the whole section is removed so no bare header remains.
 - Cursor entries are always kept, so infinite scroll keeps working.
 - Your own posts are never hidden.
 - The DOM safety net hides any rendered tweet or trend that still matches. It only matters if X introduces a response shape the filter doesn't recognize.
