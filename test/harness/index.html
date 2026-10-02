@@ -22,7 +22,6 @@
   const TL = '/i/api/graphql/q/HomeTimeline.json';
   const x = new XMLHttpRequest();
   x.open('GET', TL);
-  x.setRequestHeader('authorization', 'Bearer dummy');
   x.onload = () => {
     results.xhrText = count(JSON.parse(x.responseText));
     results.xhrStable = x.responseText === x.responseText;

@@ -1,14 +1,33 @@
 # MuteX
 
+[![CI](https://github.com/takagiy/MuteX/actions/workflows/ci.yml/badge.svg)](https://github.com/takagiy/MuteX/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/takagiy/MuteX)](https://github.com/takagiy/MuteX/releases/latest)
+
 A Chrome extension that does X (Twitter) muted-word filtering on the client, for when X's own muting stops working.
 
 Posts that contain a muted word never reach the page. MuteX removes them from X's API responses before the web app renders anything, so you get no placeholder, no gap, and no "this post is hidden" notice.
 
 ## Install
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and select this folder.
-3. Open or reload x.com. Your muted words are imported automatically.
+MuteX isn't on the Chrome Web Store. Install it as an unpacked extension. This works in Chrome, Edge, Brave, and other Chromium browsers.
+
+1. Download `MuteX-vX.Y.Z.zip` from the [latest release](https://github.com/takagiy/MuteX/releases/latest).
+2. Unzip it into a folder you will keep. Chrome loads the extension from that folder every time it starts.
+3. Open `chrome://extensions` and turn on **Developer mode** (top right).
+4. Click **Load unpacked** and select the unzipped folder (the one that contains `manifest.json`).
+5. Click the MuteX icon, then **Open X mute settings**. When X loads that page, your muted words are imported. You can also add extra words in the popup.
+
+### Update
+
+Download the new release and replace the folder's contents. Then click the reload button on the MuteX card in `chrome://extensions` and reload x.com. Your settings are kept.
+
+### From source
+
+```bash
+git clone https://github.com/takagiy/MuteX.git
+```
+
+Load the cloned folder with **Load unpacked** as above.
 
 ## How it works
 
@@ -39,14 +58,31 @@ Posts that contain a muted word never reach the page. MuteX removes them from X'
 
 ### Importing from X
 
-- **Active:** on page load, MuteX calls `GET /i/api/1.1/mutes/keywords/list.json` with the same auth headers X's own requests use. This happens at most every 30 minutes, after you edit muted words on X, or when you click **Sync now**.
-- **Passive:** whenever X itself fetches the mute list (for example on Settings › Muted words), MuteX captures that response too.
+- MuteX never sends requests to X's API itself. It only reads responses that X's own web app has already requested.
+- Whenever X fetches your mute list (`/i/api/1.1/mutes/keywords/list.json`, for example on Settings › Muted words), MuteX reads that response and saves the list.
+- To refresh after editing muted words on X or in the app, open the muted words settings page again. The popup's **Open X mute settings** button does this.
 - X's per-word "exclude people you follow" option is respected. The popup has a switch to apply all words to followed accounts as well.
 
 ## Development
 
 ```bash
 bun test
+bun scripts/check-manifest.js
+```
+
+### CI / releases
+
+- **CI** (`.github/workflows/ci.yml`) runs the tests and the manifest check on every push to `main` and on every pull request.
+- **Release** (`.github/workflows/release.yml`) runs when a `v*` tag is pushed. It runs the tests and checks that the tag matches `manifest.json`'s `version`. Then it zips the extension files and publishes a GitHub release with that zip attached.
+
+To cut a release, bump `version` in `manifest.json`, commit, and push a matching tag. For example:
+
+```bash
+git tag v1.0.1
+```
+
+```bash
+git push origin v1.0.1
 ```
 
 The tests run against synthetic payloads shaped like X's timeline and mute-list responses (`test/fixtures.js`). No real account data is checked in.

@@ -4,7 +4,6 @@
   --sub: #536471;
   --line: #eff3f4;
   --accent: #1d9bf0;
-  --error: #f4212e;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -26,12 +25,10 @@ section { border-top: 1px solid var(--line); padding: 12px 0 0; margin-top: 12px
 p { margin: 0 0 8px; }
 .muted { color: var(--sub); }
 .small { font-size: 12px; }
-.error { color: var(--error); font-size: 12px; }
 button {
   border: 0; border-radius: 999px; padding: 6px 14px;
   background: var(--fg); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer;
 }
-button:disabled { opacity: .5; cursor: default; }
 textarea {
   width: 100%; margin-bottom: 8px; padding: 6px 8px;
   border: 1px solid var(--line); border-radius: 6px;

@@ -1,6 +1,7 @@
 // MuteX page hook (runs in the page's MAIN world at document_start).
 // 1. Filters timeline API responses before X's app sees them, so muted posts are never rendered at all.
-// 2. Imports X's own muted-keyword list (actively, and passively whenever X itself fetches it).
+// 2. Imports X's own muted-keyword list by reading the response whenever X itself fetches it.
+//    MuteX never makes API requests of its own.
 // 3. DOM safety net for anything that slips through an unknown response shape.
 (function () {
   'use strict';
@@ -9,16 +10,15 @@
 
   const core = window.MuteXCore;
   const STATE_KEY = 'mutex:state';
-  const SYNC_INTERVAL = 30 * 60 * 1000;
   const MUTE_LIST_PATH = '/i/api/1.1/mutes/keywords/list.json';
 
   // ---------- state (written by the isolated-world bridge into localStorage) ----------
-  let state = null;
   let matcher = core.compile(null);
   const exempt = new Set(); // tweet ids allowed through because the author is followed
 
   function loadState() {
-    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch { state = null; }
+    let state = null;
+    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch {}
     matcher = core.compile(state);
     exempt.clear();
     scanDom(document);
@@ -49,20 +49,9 @@
     return filterObj(obj) ? JSON.stringify(obj) : text;
   }
 
-  // ---------- header capture (for active import) ----------
-  const captured = {};
-  const WANTED = /^(authorization|x-csrf-token|x-twitter-auth-type|x-twitter-active-user|x-twitter-client-language)$/i;
-  let onFirstHeaders = null;
-  function captureHeader(k, v) {
-    if (!WANTED.test(k)) return;
-    captured[k.toLowerCase()] = v;
-    if (captured.authorization && onFirstHeaders) { const f = onFirstHeaders; onFirstHeaders = null; f(); }
-  }
-
   // ---------- XMLHttpRequest ----------
   const XP = XMLHttpRequest.prototype;
   const origOpen = XP.open;
-  const origSetHeader = XP.setRequestHeader;
   const textDesc = Object.getOwnPropertyDescriptor(XP, 'responseText');
   const respDesc = Object.getOwnPropertyDescriptor(XP, 'response');
   const META = Symbol('mutex');
@@ -72,17 +61,10 @@
     this[META] = { url: u, timeline: isTimelineUrl(u), raw: undefined, out: undefined };
     if (u.includes(MUTE_LIST_PATH)) {
       this.addEventListener('load', () => {
-        try { importFromJson(JSON.parse(textDesc.get.call(this)), 'passive'); } catch {}
+        try { importFromJson(JSON.parse(textDesc.get.call(this))); } catch {}
       });
-    } else if (/\/mutes\/keywords\/(create|destroy)/.test(u)) {
-      this.addEventListener('load', () => setTimeout(() => activeImport('changed'), 500));
     }
     return origOpen.apply(this, arguments);
-  };
-
-  XP.setRequestHeader = function (k, v) {
-    if (this[META] && this[META].url.includes('/i/api/')) captureHeader(k, v);
-    return origSetHeader.apply(this, arguments);
   };
 
   function filtered(xhr, raw) {
@@ -108,15 +90,11 @@
 
   // ---------- fetch ----------
   const origFetch = window.fetch;
-  window.fetch = async function (input, init) {
+  window.fetch = async function (input) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
-    try {
-      const h = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
-      if (url.includes('/i/api/')) h.forEach((v, k) => captureHeader(k, v));
-    } catch {}
     const res = await origFetch.apply(this, arguments);
     if (url.includes(MUTE_LIST_PATH)) {
-      res.clone().json().then((j) => importFromJson(j, 'passive')).catch(() => {});
+      res.clone().json().then((j) => importFromJson(j)).catch(() => {});
     }
     if (!isTimelineUrl(url) || core.isEmpty(matcher) || !res.ok) return res;
     const ct = res.headers.get('content-type') || '';
@@ -133,42 +111,10 @@
     document.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(detail) }));
   }
 
-  function importFromJson(json, how) {
+  function importFromJson(json) {
     const rules = core.fromXMuteList(json);
-    if (rules) emit('mutex:imported', { rules, how, at: Date.now() });
-    return !!rules;
+    if (rules) emit('mutex:imported', { rules, at: Date.now() });
   }
-
-  function csrf() {
-    const m = document.cookie.match(/(?:^|;\s*)ct0=([^;]+)/);
-    return m ? m[1] : captured['x-csrf-token'];
-  }
-
-  let importing = null;
-  function activeImport(reason) {
-    if (importing) return importing;
-    if (!captured.authorization) {
-      // X has not made an authenticated API call yet; retry as soon as it does.
-      onFirstHeaders = () => activeImport(reason);
-      return Promise.resolve(false);
-    }
-    const headers = { ...captured, 'x-csrf-token': csrf() };
-    importing = origFetch.call(window, MUTE_LIST_PATH, { credentials: 'include', headers })
-      .then(async (r) => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        if (!importFromJson(await r.json(), reason)) throw new Error('unexpected response');
-        return true;
-      })
-      .catch((e) => {
-        emit('mutex:import-error', { message: String(e.message || e), at: Date.now() });
-        return false;
-      })
-      .finally(() => { importing = null; });
-    return importing;
-  }
-
-  document.addEventListener('mutex:sync', () => activeImport('manual'));
-
 
   // ---------- DOM safety net ----------
   const HIDDEN = 'data-mutex-hidden';
@@ -240,9 +186,4 @@
   // ---------- init ----------
   loadState();
   document.addEventListener('mutex:state', loadState);
-
-  // Auto-sync on page load when the last import is stale.
-  if (!state || !state.lastSync || Date.now() - state.lastSync > SYNC_INTERVAL) {
-    onFirstHeaders = () => activeImport('auto');
-  }
 })();

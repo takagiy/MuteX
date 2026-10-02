@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const STATE_KEY = 'mutex:state';
-  const DEFAULT = { enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0, syncError: null };
+  const DEFAULT = { enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0 };
 
   function push(state) {
     try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch {}
@@ -27,17 +27,6 @@
 
   document.addEventListener('mutex:imported', (e) => {
     const d = JSON.parse(e.detail);
-    update({ imported: d.rules, lastSync: d.at, syncError: null });
-  });
-  document.addEventListener('mutex:import-error', (e) => {
-    const d = JSON.parse(e.detail);
-    update({ syncError: d.message, syncErrorAt: d.at });
-  });
-
-  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg?.type === 'mutex:sync') {
-      document.dispatchEvent(new CustomEvent('mutex:sync'));
-      sendResponse({ ok: true });
-    }
+    update({ imported: d.rules, lastSync: d.at });
   });
 })();
