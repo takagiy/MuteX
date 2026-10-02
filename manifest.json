@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "tweetmuff",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Filters posts containing your X muted words without leaving a trace. Imports your mute settings from X automatically.",
   "permissions": ["storage"],
   "action": { "default_popup": "popup/popup.html", "default_title": "tweetmuff" },
