@@ -18,8 +18,8 @@ function render(s) {
   $('enabled').checked = s.enabled;
   $('applyToFollowing').checked = s.applyToFollowing;
   $('syncStatus').textContent = s.lastSync
-    ? `${s.imported.length} words synced (${fmtTime(s.lastSync)})`
-    : 'Not synced yet. Open X's muted words settings once to import them.';
+    ? `${s.imported.length} word${s.imported.length === 1 ? '' : 's'} synced (${fmtTime(s.lastSync)})`
+    : "Not synced yet. Open X's muted words settings once to import them.";
   $('importedSummary').textContent = `Imported (${s.imported.length})`;
   const ul = $('importedList');
   ul.replaceChildren(...s.imported.map((r) => {
