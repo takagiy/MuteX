@@ -1,5 +1,5 @@
 'use strict';
-const DEFAULT = { enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0, syncError: null };
+const DEFAULT = { enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0 };
 const $ = (id) => document.getElementById(id);
 
 async function getState() {
@@ -19,10 +19,7 @@ function render(s) {
   $('applyToFollowing').checked = s.applyToFollowing;
   $('syncStatus').textContent = s.lastSync
     ? `${s.imported.length} words synced (${fmtTime(s.lastSync)})`
-    : 'Not synced yet. Open x.com and it will import automatically.';
-  const err = s.syncError && (!s.lastSync || (s.syncErrorAt || 0) > s.lastSync);
-  $('syncError').hidden = !err;
-  if (err) $('syncError').textContent = `Sync failed (${s.syncError}). Opening X's Settings › Muted words page once will import them.`;
+    : 'Not synced yet. Open X's muted words settings once to import them.';
   $('importedSummary').textContent = `Imported (${s.imported.length})`;
   const ul = $('importedList');
   ul.replaceChildren(...s.imported.map((r) => {
@@ -44,18 +41,10 @@ $('saveLocal').addEventListener('click', async () => {
   setTimeout(() => ($('saved').hidden = true), 1500);
 });
 
-$('syncNow').addEventListener('click', async () => {
-  const tabs = await chrome.tabs.query({ url: ['https://x.com/*', 'https://twitter.com/*'] });
-  if (!tabs.length) {
-    $('syncError').hidden = false;
-    $('syncError').textContent = 'Open an x.com tab first.';
-    return;
-  }
-  const tab = tabs.find((t) => t.active) || tabs[0];
-  $('syncNow').disabled = true;
-  try { await chrome.tabs.sendMessage(tab.id, { type: 'mutex:sync' }); }
-  catch { $('syncError').hidden = false; $('syncError').textContent = 'Reload the x.com tab and try again.'; }
-  setTimeout(() => ($('syncNow').disabled = false), 1500);
+// X loads the list itself on this page; MuteX only reads that response.
+$('openSettings').addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://x.com/settings/muted_keywords' });
+  window.close();
 });
 
 chrome.storage.onChanged.addListener((c, area) => {
