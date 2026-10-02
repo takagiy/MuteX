@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MuteX",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Filters posts containing your X muted words without leaving a trace. Imports your mute settings from X automatically.",
   "permissions": ["storage"],
   "action": { "default_popup": "popup/popup.html", "default_title": "MuteX" },
