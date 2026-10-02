@@ -108,3 +108,27 @@ test('disabled = untouched', () => {
   const { data } = sampleTimeline();
   expect(core.filterPayload(data, core.compile({ ...rulesOf(['spoiler']), enabled: false }))).toBe(0);
 });
+
+test('Explore event cards and trend context', () => {
+  const card = (title) => ({ entryId: 'event-' + title, content: { itemContent: { itemType: 'TimelineEventSummary', __typename: 'TimelineEventSummary', title } } });
+  const trend = (name, context) => ({ entryId: 'trend-' + name, content: { itemContent: { itemType: 'TimelineTrend', name, social_context: { text: context } } } });
+  const d = { data: { explore: { timeline: { instructions: [{ entries: [card('Big spoiler leak'), card('Weather today'), trend('#Movie', 'Trending with spoiler'), trend('#Rain', 'Trending in Tokyo')] }] } } } };
+  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler'])))).toBe(2);
+  expect(d.data.explore.timeline.instructions[0].entries.map((e) => e.entryId)).toEqual(['event-Weather today', 'trend-#Rain']);
+});
+
+test('search typeahead suggestions', () => {
+  const d = {
+    num_results: 4,
+    ordered_sections: [],
+    users: [{ id_str: '1', name: 'spoiler fan', screen_name: 'someone' }],
+    topics: [{ topic: 'spoiler', rounded_score: 1 }, { topic: 'sports' }],
+    hashtags: [{ hashtag: '#ネタバレ' }],
+    events: [],
+  };
+  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler', 'ネタバレ'])))).toBe(2);
+  expect(d.topics).toEqual([{ topic: 'sports' }]);
+  expect(d.hashtags).toEqual([]);
+  expect(d.users.length).toBe(1); // users are not filtered, like X's own mute
+  expect(d.num_results).toBe(2);
+});

@@ -40,7 +40,7 @@ Load the cloned folder with **Load unpacked** as above.
 
 ### Filtering
 
-- Applies to GraphQL / v2 timeline responses: home, replies, search, profiles, notifications, lists, bookmarks, and trends.
+- Applies to GraphQL / v2 timeline responses: home, replies, search, profiles, notifications, lists, bookmarks, trends, and Explore news cards. It also covers search-box suggestions (topics, hashtags, and events; accounts are left alone, the same as X's own mute).
 - Each timeline entry is checked for every tweet inside it: the post text (including long-form note text), quoted posts, retweeted originals, link-card titles and descriptions, and article titles.
 - If any tweet in a conversation module matches, the whole module is dropped, so no broken thread line is left behind.
 - Cursor entries are always kept, so infinite scroll keeps working.
