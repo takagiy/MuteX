@@ -1,30 +1,30 @@
-# MuteX
+# tweetmuff
 
-[![CI](https://github.com/takagiy/MuteX/actions/workflows/ci.yml/badge.svg)](https://github.com/takagiy/MuteX/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/takagiy/MuteX)](https://github.com/takagiy/MuteX/releases/latest)
+[![CI](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml/badge.svg)](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/takagiy/tweetmuff)](https://github.com/takagiy/tweetmuff/releases/latest)
 
 A Chrome extension that does X (Twitter) muted-word filtering on the client, for when X's own muting stops working.
 
-Posts that contain a muted word never reach the page. MuteX removes them from X's API responses before the web app renders anything, so you get no placeholder, no gap, and no "this post is hidden" notice.
+Posts that contain a muted word never reach the page. tweetmuff removes them from X's API responses before the web app renders anything, so you get no placeholder, no gap, and no "this post is hidden" notice.
 
 ## Install
 
-MuteX isn't on the Chrome Web Store. Install it as an unpacked extension. This works in Chrome, Edge, Brave, and other Chromium browsers.
+tweetmuff isn't on the Chrome Web Store. Install it as an unpacked extension. This works in Chrome, Edge, Brave, and other Chromium browsers.
 
-1. Download `MuteX-vX.Y.Z.zip` from the [latest release](https://github.com/takagiy/MuteX/releases/latest).
+1. Download `tweetmuff-vX.Y.Z.zip` from the [latest release](https://github.com/takagiy/tweetmuff/releases/latest).
 2. Unzip it into a folder you will keep. Chrome loads the extension from that folder every time it starts.
 3. Open `chrome://extensions` and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and select the unzipped folder (the one that contains `manifest.json`).
-5. Click the MuteX icon, then **Open X mute settings**. When X loads that page, your muted words are imported. You can also add extra words in the popup.
+5. Click the tweetmuff icon, then **Open X mute settings**. When X loads that page, your muted words are imported. You can also add extra words in the popup.
 
 ### Update
 
-Download the new release and replace the folder's contents. Then click the reload button on the MuteX card in `chrome://extensions` and reload x.com. Your settings are kept.
+Download the new release and replace the folder's contents. Then click the reload button on the tweetmuff card in `chrome://extensions` and reload x.com. Your settings are kept.
 
 ### From source
 
 ```bash
-git clone https://github.com/takagiy/MuteX.git
+git clone https://github.com/takagiy/tweetmuff.git
 ```
 
 Load the cloned folder with **Load unpacked** as above.
@@ -58,8 +58,8 @@ Load the cloned folder with **Load unpacked** as above.
 
 ### Importing from X
 
-- MuteX never sends requests to X's API itself. It only reads responses that X's own web app has already requested.
-- Whenever X fetches your mute list (`/i/api/1.1/mutes/keywords/list.json`, for example on Settings › Muted words), MuteX reads that response and saves the list.
+- tweetmuff never sends requests to X's API itself. It only reads responses that X's own web app has already requested.
+- Whenever X fetches your mute list (`/i/api/1.1/mutes/keywords/list.json`, for example on Settings › Muted words), tweetmuff reads that response and saves the list.
 - To refresh after editing muted words on X or in the app, open the muted words settings page again. The popup's **Open X mute settings** button does this.
 - X's per-word "exclude people you follow" option is respected. The popup has a switch to apply all words to followed accounts as well.
 

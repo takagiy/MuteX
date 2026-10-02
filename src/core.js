@@ -1,4 +1,4 @@
-// MuteX core: keyword matching and API-response filtering.
+// tweetmuff core: keyword matching and API-response filtering.
 // Pure logic with no DOM / chrome.* dependency so it can run in the page's MAIN world and in tests.
 (function (root) {
   'use strict';
@@ -299,6 +299,6 @@
   }
 
   const api = { normalize, keywordSource, compile, isEmpty, judgeText, cleanText, tweetSegments, filterPayload, fromXMuteList };
-  root.MuteXCore = api;
+  root.TweetmuffCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(globalThis);

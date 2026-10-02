@@ -1,15 +1,15 @@
-// MuteX page hook (runs in the page's MAIN world at document_start).
+// tweetmuff page hook (runs in the page's MAIN world at document_start).
 // 1. Filters timeline API responses before X's app sees them, so muted posts are never rendered at all.
 // 2. Imports X's own muted-keyword list by reading the response whenever X itself fetches it.
-//    MuteX never makes API requests of its own.
+//    tweetmuff never makes API requests of its own.
 // 3. DOM safety net for anything that slips through an unknown response shape.
 (function () {
   'use strict';
-  if (window.__muteX) return;
-  window.__muteX = true;
+  if (window.__tweetmuff) return;
+  window.__tweetmuff = true;
 
-  const core = window.MuteXCore;
-  const STATE_KEY = 'mutex:state';
+  const core = window.TweetmuffCore;
+  const STATE_KEY = 'tweetmuff:state';
   const MUTE_LIST_PATH = '/i/api/1.1/mutes/keywords/list.json';
 
   // ---------- state (written by the isolated-world bridge into localStorage) ----------
@@ -40,7 +40,7 @@
   function filterObj(obj) {
     if (core.isEmpty(matcher)) return 0;
     try { return core.filterPayload(obj, matcher, { selfId: selfId(), exempt }); }
-    catch (e) { console.warn('[MuteX] filter error', e); return 0; }
+    catch (e) { console.warn('[tweetmuff] filter error', e); return 0; }
   }
 
   function filterText(text) {
@@ -55,7 +55,7 @@
   const origOpen = XP.open;
   const textDesc = Object.getOwnPropertyDescriptor(XP, 'responseText');
   const respDesc = Object.getOwnPropertyDescriptor(XP, 'response');
-  const META = Symbol('mutex');
+  const META = Symbol('tweetmuff');
 
   XP.open = function (method, url) {
     const u = String(url);
@@ -114,11 +114,11 @@
 
   function importFromJson(json) {
     const rules = core.fromXMuteList(json);
-    if (rules) emit('mutex:imported', { rules, at: Date.now() });
+    if (rules) emit('tweetmuff:imported', { rules, at: Date.now() });
   }
 
   // ---------- DOM safety net ----------
-  const HIDDEN = 'data-mutex-hidden';
+  const HIDDEN = 'data-tweetmuff-hidden';
 
   function installStyle() {
     const s = document.createElement('style');
@@ -186,5 +186,5 @@
 
   // ---------- init ----------
   loadState();
-  document.addEventListener('mutex:state', loadState);
+  document.addEventListener('tweetmuff:state', loadState);
 })();

@@ -41,7 +41,7 @@ $('saveLocal').addEventListener('click', async () => {
   setTimeout(() => ($('saved').hidden = true), 1500);
 });
 
-// X loads the list itself on this page; MuteX only reads that response.
+// X loads the list itself on this page; tweetmuff only reads that response.
 $('openSettings').addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://x.com/settings/muted_keywords' });
   window.close();
