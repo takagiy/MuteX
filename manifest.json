@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "MuteX",
+  "version": "1.0.0",
+  "description": "Filters posts containing your X muted words without leaving a trace. Imports your mute settings from X automatically.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
+  "action": { "default_popup": "popup/popup.html", "default_title": "MuteX" },
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/core.js", "src/main.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

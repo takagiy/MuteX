@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MuteX harness</title>
+<script>
+  // Simulate the bridge having written state.
+  localStorage.setItem('mutex:state', JSON.stringify({ enabled: true, imported: [], local: [{ keyword: 'spoiler' }, { keyword: 'ネタバレ' }] }));
+</script>
+<script src="core.js"></script>
+<script src="main.js"></script>
+<body>
+<div id="tl">
+  <div data-testid="cellInnerDiv" id="c1"><article data-testid="tweet"><div data-testid="tweetText">a spoiler here</div></article></div>
+  <div data-testid="cellInnerDiv" id="c2"><article data-testid="tweet"><div data-testid="tweetText">plain post <a href="https://t.co/spoiler1">t.co/spoiler1</a></div></article></div>
+</div>
+<pre id="out"></pre>
+<script>
+  // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, dom == [true, false, true]
+  window.results = {};
+  document.addEventListener('mutex:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
+  fetch('expected.json').then((r) => r.json()).then((e) => { results.expected = e; });
+  const count = (d) => d.data.home.home_timeline_urt.instructions[0].entries.length;
+  const TL = '/i/api/graphql/q/HomeTimeline.json';
+  const x = new XMLHttpRequest();
+  x.open('GET', TL);
+  x.setRequestHeader('authorization', 'Bearer dummy');
+  x.onload = () => {
+    results.xhrText = count(JSON.parse(x.responseText));
+    results.xhrStable = x.responseText === x.responseText;
+    const y = new XMLHttpRequest(); y.responseType = 'json';
+    y.open('GET', TL);
+    y.onload = () => { results.xhrJson = count(y.response); };
+    y.send();
+  };
+  x.send();
+  fetch(TL).then((r) => r.json()).then((d) => { results.fetch = count(d); });
+  const m = new XMLHttpRequest(); m.open('GET', '/i/api/1.1/mutes/keywords/list.json'); m.send();
+  setTimeout(() => {
+    const c3 = document.createElement('div'); c3.dataset.testid = 'cellInnerDiv'; c3.id = 'c3';
+    c3.innerHTML = '<article data-testid="tweet"><div data-testid="tweetText">最終回のネタバレ</div></article>';
+    document.getElementById('tl').append(c3);
+  }, 50);
+  setTimeout(() => {
+    results.dom = ['c1', 'c2', 'c3'].map((id) => document.getElementById(id).hasAttribute('data-mutex-hidden'));
+    document.getElementById('out').textContent = JSON.stringify(results, null, 1);
+  }, 600);
+</script>
