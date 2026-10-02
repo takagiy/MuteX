@@ -33,7 +33,8 @@
 
   // ---------- response filtering ----------
   function isTimelineUrl(url) {
-    return /\/i\/api\/(graphql|2)\//.test(url) || /api\.(x|twitter)\.com\/(graphql|2)\//.test(url);
+    return /\/i\/api\/(graphql\/|2\/|1\.1\/search\/typeahead\.json)/.test(url)
+      || /api\.(x|twitter)\.com\/(graphql|2)\//.test(url);
   }
 
   function filterObj(obj) {

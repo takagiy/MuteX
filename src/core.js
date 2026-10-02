@@ -128,7 +128,19 @@
     return !!((m.always && m.always.test(t)) || (m.unlessFollowing && m.unlessFollowing.test(t)));
   }
 
-  // Walks any subtree and judges every tweet / trend found in it.
+  // Non-tweet timeline items that carry their own text (trends, Explore news/event cards).
+  function itemText(o) {
+    if (o.itemType === 'TimelineTrend' || o.__typename === 'TimelineTrend') {
+      return [o.name, o.social_context?.text, o.trend_metadata?.meta_description, o.trend_metadata?.domain_context];
+    }
+    if (o.itemType === 'TimelineEventSummary' || o.__typename === 'TimelineEventSummary') {
+      const p = o.promotedMetadata || {};
+      return [o.title, p.promotedTrendName, p.promotedTrendDescription];
+    }
+    return null;
+  }
+
+  // Walks any subtree and judges every tweet / trend / event card found in it.
   function subtreeMuted(node, ctx) {
     let muted = false;
     const visit = (o, depth) => {
@@ -142,10 +154,8 @@
           if (j === 'exempt' && s.id) ctx.exempt.add(s.id);
         }
       }
-      if (o.itemType === 'TimelineTrend' || o.__typename === 'TimelineTrend') {
-        const txt = [o.name, o.trend_metadata?.meta_description, o.trend_metadata?.domain_context].filter(Boolean).join('\n');
-        if (judgeText(txt, ctx.m)) { muted = true; return; }
-      }
+      const txt = itemText(o);
+      if (txt && judgeText(txt.filter(Boolean).join('\n'), ctx.m)) { muted = true; return; }
       for (const k in o) {
         if (k === 'tweet_results') continue;
         visit(o[k], depth + 1);
@@ -155,6 +165,22 @@
     return muted;
   }
 
+  // A conversation module (home-conversation-*, conversationthread-*) is dropped as a whole when any tweet
+  // in it matches; dropping just one item would leave a dangling thread line.
+  // Other modules are lists of independent items ("Discover more" under a post, carousels): only the matching
+  // items go, and the module goes too once it is empty so no bare header is left.
+  function entryMuted(e, ctx) {
+    if (isCursor(e)) return false;
+    const c = e?.content;
+    if (Array.isArray(c?.items) && c.items.length && !/Conversation/.test(c.displayType || '')) {
+      const before = c.items.length;
+      c.items = c.items.filter((it) => !subtreeMuted(it, ctx));
+      ctx.removedItems += before - c.items.length;
+      return c.items.length === 0;
+    }
+    return subtreeMuted(e, ctx);
+  }
+
   function filterInstructions(instructions, ctx) {
     let removed = 0;
     for (let i = instructions.length - 1; i >= 0; i--) {
@@ -162,9 +188,7 @@
       if (!ins || typeof ins !== 'object') continue;
       if (Array.isArray(ins.entries)) {
         const before = ins.entries.length;
-        // A conversation module (home-conversation-*, conversationthread-*) is dropped as a whole when any
-        // tweet in it matches; dropping just one item would leave a dangling thread line.
-        ins.entries = ins.entries.filter((e) => isCursor(e) || !subtreeMuted(e, ctx));
+        ins.entries = ins.entries.filter((e) => !entryMuted(e, ctx));
         removed += before - ins.entries.length;
       }
       if (Array.isArray(ins.moduleItems)) {
@@ -222,11 +246,32 @@
     return removed;
   }
 
+  // Search-box suggestions (/1.1/search/typeahead.json). Users are left alone, like X's own mute.
+  function filterTypeahead(obj, ctx) {
+    if (!('num_results' in obj && 'ordered_sections' in obj)) return 0;
+    let removed = 0;
+    for (const key of ['topics', 'hashtags', 'events']) {
+      const list = obj[key];
+      if (!Array.isArray(list)) continue;
+      obj[key] = list.filter((item) => {
+        const strings = [];
+        JSON.stringify(item, (k, v) => {
+          if (typeof v === 'string' && !/url|id$|_str$/i.test(k)) strings.push(v);
+          return v;
+        });
+        return !judgeText(strings.join('\n'), ctx.m);
+      });
+      removed += list.length - obj[key].length;
+    }
+    if (removed && typeof obj.num_results === 'number') obj.num_results -= removed;
+    return removed;
+  }
+
   // Mutates obj in place. Returns number of removed timeline entries/items.
   function filterPayload(obj, m, opts = {}) {
     if (!obj || typeof obj !== 'object' || isEmpty(m)) return 0;
-    const ctx = { m, selfId: opts.selfId || null, exempt: opts.exempt || new Set() };
-    let removed = filterLegacyV2(obj, ctx);
+    const ctx = { m, selfId: opts.selfId || null, exempt: opts.exempt || new Set(), removedItems: 0 };
+    let removed = filterLegacyV2(obj, ctx) + filterTypeahead(obj, ctx);
     const seen = new Set();
     const visit = (o, depth) => {
       if (!o || typeof o !== 'object' || depth > 30 || seen.has(o)) return;
@@ -239,7 +284,7 @@
       }
     };
     visit(obj, 0);
-    return removed;
+    return removed + ctx.removedItems;
   }
 
   // X's mute-list API -> our rule format
