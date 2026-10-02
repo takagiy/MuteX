@@ -88,3 +88,7 @@ git push origin v1.0.1
 The tests run against synthetic payloads shaped like X's timeline and mute-list responses (`test/fixtures.js`). No real account data is checked in.
 
 `test/harness/index.html` is a browser harness. Run `bun test/build-harness.js` to generate its payloads and copy the scripts, then serve `test/harness/` and open the page. It checks XHR (text and JSON), fetch, the passive import, and the DOM safety net.
+
+## License
+
+[MIT](LICENSE)
