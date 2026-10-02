@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "MuteX",
+  "name": "tweetmuff",
   "version": "1.0.2",
   "description": "Filters posts containing your X muted words without leaving a trace. Imports your mute settings from X automatically.",
   "permissions": ["storage"],
-  "action": { "default_popup": "popup/popup.html", "default_title": "MuteX" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "tweetmuff" },
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "content_scripts": [
     {

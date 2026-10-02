@@ -1,9 +1,9 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>MuteX harness</title>
+<title>tweetmuff harness</title>
 <script>
   // Simulate the bridge having written state.
-  localStorage.setItem('mutex:state', JSON.stringify({ enabled: true, imported: [], local: [{ keyword: 'spoiler' }, { keyword: 'ネタバレ' }] }));
+  localStorage.setItem('tweetmuff:state', JSON.stringify({ enabled: true, imported: [], local: [{ keyword: 'spoiler' }, { keyword: 'ネタバレ' }] }));
 </script>
 <script src="core.js"></script>
 <script src="main.js"></script>
@@ -16,7 +16,7 @@
 <script>
   // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, dom == [true, false, true]
   window.results = {};
-  document.addEventListener('mutex:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
+  document.addEventListener('tweetmuff:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
   fetch('expected.json').then((r) => r.json()).then((e) => { results.expected = e; });
   const count = (d) => d.data.home.home_timeline_urt.instructions[0].entries.length;
   const TL = '/i/api/graphql/q/HomeTimeline.json';
@@ -39,7 +39,7 @@
     document.getElementById('tl').append(c3);
   }, 50);
   setTimeout(() => {
-    results.dom = ['c1', 'c2', 'c3'].map((id) => document.getElementById(id).hasAttribute('data-mutex-hidden'));
+    results.dom = ['c1', 'c2', 'c3'].map((id) => document.getElementById(id).hasAttribute('data-tweetmuff-hidden'));
     document.getElementById('out').textContent = JSON.stringify(results, null, 1);
   }, 600);
 </script>
