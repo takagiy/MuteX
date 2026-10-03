@@ -2,7 +2,8 @@
 <meta charset="utf-8">
 <title>tweetmuff harness</title>
 <script>
-  // Simulate the bridge having written state.
+  // Simulate a signed-in user (read by main.js through cookieStore) and the bridge having written state.
+  document.cookie = 'twid=u%3D4242; path=/; max-age=60';
   localStorage.setItem('tweetmuff:state', JSON.stringify({ enabled: true, imported: [], local: [{ keyword: 'spoiler' }, { keyword: 'ネタバレ' }] }));
 </script>
 <script src="core.js"></script>
@@ -15,7 +16,7 @@
 <pre id="out"></pre>
 <script>
   // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, domUntouched == true,
-  // legacy == expected.legacy, cleanFetchUntouched == true,
+  // legacy == expected.legacy, cleanFetchUntouched == true, ownPostKept == true,
   // problems == [{ feature: 'other', step: 'legacy', kind: 'TypeError' }] for the odd legacy response
   window.results = {};
   document.addEventListener('tweetmuff:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
@@ -42,6 +43,16 @@
   lx.onload = () => { results.legacy = JSON.parse(lx.responseText).timeline.instructions[0].addEntries.entries.map((e) => e.entryId); };
   lx.send();
   const m = new XMLHttpRequest(); m.open('GET', '/i/api/1.1/mutes/keywords/list.json'); m.send();
+  // Own posts: give the async cookieStore read a moment, then the user's own muted post must stay.
+  setTimeout(() => {
+    const sx = new XMLHttpRequest();
+    sx.open('GET', '/i/api/graphql/q/Self.json');
+    sx.onload = () => {
+      const t = sx.responseText;
+      results.ownPostKept = t.includes('my own spoiler') && !t.includes('their spoiler');
+    };
+    sx.send();
+  }, 200);
   const headChildren = document.head.children.length;
   setTimeout(() => {
     const c2 = document.createElement('div'); c2.dataset.testid = 'cellInnerDiv'; c2.id = 'c2';

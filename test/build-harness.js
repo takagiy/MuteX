@@ -2,7 +2,7 @@
 // Run: bun test/build-harness.js   then serve test/harness/ and open index.html
 import fs from 'node:fs';
 import path from 'node:path';
-import { sampleTimeline, muteList, homeTimeline, tweetEntry, tweet } from './fixtures.js';
+import { sampleTimeline, muteList, homeTimeline, tweetEntry, tweet, user } from './fixtures.js';
 
 const root = path.join(import.meta.dir, 'harness');
 const write = (rel, data) => {
@@ -20,6 +20,11 @@ write('i/api/2/timeline/odd.json', {
   globalObjects: { tweets: { 1: null, 2: { full_text: 'legacy spoiler', user_id_str: '9' }, 3: { full_text: 'legacy fine', user_id_str: '9' } }, users: {} },
   timeline: { instructions: [{ addEntries: { entries: ['1', '2', '3'].map((id) => ({ entryId: 'tweet-' + id, content: { item: { content: { tweet: { id } } } } })) } }] },
 });
+// The signed-in user (twid u=4242, set by index.html) never has their own posts hidden.
+write('i/api/graphql/q/Self.json', homeTimeline([
+  tweetEntry(tweet({ text: 'my own spoiler', author: user({ id: '4242' }) })),
+  tweetEntry(tweet({ text: 'their spoiler' })),
+]));
 write('expected.json', { total: total + 2, afterFilter: total + 2 - muted, legacy: ['tweet-1', 'tweet-3'] }); // +2 cursors
 for (const f of ['core.js', 'main.js']) fs.copyFileSync(path.join(import.meta.dir, '../src', f), path.join(root, f));
 console.log('harness ready:', root);

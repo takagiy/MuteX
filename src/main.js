@@ -37,15 +37,24 @@
     }
   }
 
-  function selfId() {
+  // The signed-in user's id, so their own posts are never hidden. Read with the Cookie Store API, which returns only
+  // the twid cookie; document.cookie would hand over every readable cookie, including X's CSRF token.
+  let selfId = null;
+  async function readSelfId() {
     try {
-      const m = document.cookie.match(/(?:^|;\s*)twid=([^;]+)/);
-      const v = m ? decodeURIComponent(m[1]).replace(/^"|"$/g, '') : '';
-      return (v.match(/u=(\d+)/) || [])[1] || null;
+      const c = await window.cookieStore?.get('twid');
+      const v = c ? decodeURIComponent(c.value).replace(/^"|"$/g, '') : '';
+      selfId = (v.match(/u=(\d+)/) || [])[1] || null;
     } catch {
-      return null;
+      selfId = null;
     }
   }
+  readSelfId();
+  try {
+    window.cookieStore?.addEventListener('change', (e) => {
+      if ([...e.changed, ...e.deleted].some((c) => c.name === 'twid')) readSelfId(); // signed out or switched accounts
+    });
+  } catch {}
 
   // ---------- response filtering ----------
   function isTimelineUrl(url) {
@@ -57,7 +66,7 @@
     if (core.isEmpty(matcher)) return 0;
     const onError = (e, step = 'response') => report(e, core.featureOf(url), step);
     try {
-      return core.filterPayload(obj, matcher, { selfId: selfId(), onError });
+      return core.filterPayload(obj, matcher, { selfId, onError });
     } catch (e) {
       onError(e);
       return 0;
