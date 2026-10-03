@@ -7,7 +7,7 @@ tweetmuff works only on x.com. It handles the data below only to filter posts an
 
 ## Personally identifiable information
 
-- **X account ID** (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie, through the Cookie Store API, and keeps the ID in memory only. It's never stored or sent.
+- **X account ID** (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie and uses the ID only while the page is open. It's never stored or sent.
 
 ## Website content
 
@@ -37,13 +37,13 @@ tweetmuff doesn't handle health, financial or payment, authentication, personal 
 
 ## Stored on your device
 
-In the extension's local storage (`chrome.storage.local`):
+In the extension's storage on your device:
 
 - Your settings (on/off, "apply to accounts you follow") and the extra muted words you add on the settings page
 - The muted-word list imported from X
 - A short problem log. If part of X's data looks unexpected, tweetmuff leaves that part unfiltered and saves a fixed code such as `home/entries/TypeError`, with the extension version, how often it happened, and when. It holds no messages, posts, words, links, or account details. You can see it in the Status section of the settings page, copy it to report a problem, or clear it.
 
-A copy of your settings and words is also kept in x.com's `localStorage` (key `tweetmuff:state`), so the filter is ready as soon as the page starts loading.
+A copy of your settings and words is also kept in x.com's site data on your device, so the filter is ready as soon as the page starts loading.
 
 ## Limited Use
 
@@ -58,7 +58,7 @@ tweetmuff uses no third-party services (analytics, error reporting, advertising,
 
 ## Deleting your data
 
-Removing the extension deletes its local storage. The **Clear** button in the settings page's Status section deletes the problem log on its own. The copy in x.com's `localStorage` is removed when you clear site data for x.com.
+Removing the extension deletes its storage. The **Clear** button in the settings page's Status section deletes the problem log on its own. The copy in x.com's site data is removed when you clear site data for x.com.
 
 ## Changes
 
