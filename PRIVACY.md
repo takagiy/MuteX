@@ -3,44 +3,68 @@
 **Extension:** tweetmuff
 **Last updated:** 2026-10-03
 
-## Summary
+tweetmuff works only on x.com. It handles the data below only to filter posts and to show its own status on its settings page. It never sends anything anywhere: it makes no network requests of its own and has no server.
 
-tweetmuff does not transmit, sell, or share any user data. Everything it handles stays on your device.
+The sections follow the data categories of the Chrome Web Store privacy form.
 
-## Data the extension handles
+## Personally identifiable information
 
-tweetmuff only works on x.com. There it handles the following, all locally in your browser:
+- **X account ID** (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie, through the Cookie Store API, and keeps the ID in memory only. It's never stored or sent.
 
-- **X's network requests.** It watches the requests X's web app makes on x.com and checks their addresses to find the ones that carry timeline data. The requests aren't recorded.
-- **Timeline content.** It reads the timeline data that X's web app has already received, such as posts, replies, search results, trends, and search suggestions. It removes items that contain your muted words before they are displayed. The content is not stored or sent anywhere.
-- **Your muted words.** When X's web app loads your muted-word list (for example on Settings › Muted words), tweetmuff reads that response and saves the words and their options. It also saves the extra words you add on the settings page and your settings (on/off, "apply to accounts you follow"). These are stored in the extension's local storage (`chrome.storage.local`). A copy is also kept in x.com's `localStorage`, so the filter is ready as soon as the page starts loading.
-- **Your X account ID.** It reads your numeric account ID from X's `twid` cookie, only so that your own posts are never hidden. This ID identifies your X account, so it counts as personal information. tweetmuff reads only this one cookie and no others. The ID is used only inside your browser, and it's never stored or sent anywhere.
-- **Problem log.** If part of X's data doesn't look the way tweetmuff expects, tweetmuff leaves that part unfiltered and saves a short code for it in `chrome.storage.local`. The code says which feature was affected, which step failed, and the type of error, for example `home/entries/TypeError`. It also saves how often that happened and when. No error messages, posts, words, links, or account details are saved. You can see these codes in the Status section of the settings page, copy them to report a problem, or clear them. They are never sent anywhere automatically, and codes from older versions are discarded.
+## Website content
 
-## Data the extension transmits
+Read in the page before X displays it, to remove items that contain your muted words. Nothing here is stored or sent, except your muted-word list.
 
-**None.** tweetmuff never sends requests to X or to any other server. It does not call X's API itself; it only reads responses that X's own web app requested.
+- Posts in timelines: home, profiles, lists, bookmarks, and notifications
+- Replies and "Discover more" under a post
+- Search results, and search suggestions (topics, hashtags, and events)
+- Trends and Explore news cards
+- Your muted-word list on X, when X's web app loads it (for example on Settings › Muted words). The words and their options are saved on your device (see [Stored on your device](#stored-on-your-device)).
 
-## Permissions used
+## User activity
 
-- `storage`: saves your muted words and settings on your device.
-- Content scripts on `https://x.com/*`: filter posts on X's pages.
+tweetmuff watches the requests X's web app makes and checks their addresses to find the ones below. It reads only the responses to those. The requests themselves aren't recorded.
 
-## Third parties
+| Requests | Why |
+| --- | --- |
+| `x.com/i/api/graphql/…` | Timelines to filter (home, replies, search, profiles, Explore, and others) |
+| `x.com/i/api/2/…` | Older timeline formats to filter, such as notifications |
+| `x.com/i/api/1.1/search/typeahead.json` | Search suggestions to filter |
+| `api.x.com/graphql/…`, `api.x.com/2/…` | The same APIs on X's API host (also matched on api.twitter.com) |
+| `x.com/i/api/1.1/mutes/keywords/list.json` | Your muted-word list, to import it |
 
-tweetmuff does not use any third-party analytics, error reporting, advertising, or tracking services.
+## Not handled
 
-## Remote code
+tweetmuff doesn't handle health, financial or payment, authentication, personal communications, location, or web history data. It reads no passwords, auth cookies, tokens, or request headers, doesn't touch direct messages, and keeps no list of the pages you visit.
 
-tweetmuff does not load or execute any remote code. All code is shipped inside the extension package.
+## Stored on your device
+
+In the extension's local storage (`chrome.storage.local`):
+
+- Your settings (on/off, "apply to accounts you follow") and the extra muted words you add on the settings page
+- The muted-word list imported from X
+- A short problem log. If part of X's data looks unexpected, tweetmuff leaves that part unfiltered and saves a fixed code such as `home/entries/TypeError`, with the extension version, how often it happened, and when. It holds no messages, posts, words, links, or account details. You can see it in the Status section of the settings page, copy it to report a problem, or clear it.
+
+A copy of your settings and words is also kept in x.com's `localStorage` (key `tweetmuff:state`), so the filter is ready as soon as the page starts loading.
+
+## Limited Use
+
+tweetmuff's use of the data above complies with the Chrome Web Store User Data Policy, including the Limited Use requirements. The data is used only to filter posts on X and show the extension's status. It isn't sold or transferred, isn't used for advertising or to determine creditworthiness or lending, and isn't read by anyone.
+
+## Permissions
+
+- `storage`: saves your settings, muted words, and problem log on your device.
+- Content scripts on `https://x.com/*`: filter posts on X.
+
+tweetmuff uses no third-party services (analytics, error reporting, advertising, or tracking) and loads no remote code.
 
 ## Deleting your data
 
-Removing the extension deletes everything in its local storage, including the problem log. The **Clear** button in the settings page's Status section deletes the problem log on its own. The copy in x.com's `localStorage` (key `tweetmuff:state`) is removed when you clear site data for x.com.
+Removing the extension deletes its local storage. The **Clear** button in the settings page's Status section deletes the problem log on its own. The copy in x.com's `localStorage` is removed when you clear site data for x.com.
 
-## Changes to this policy
+## Changes
 
-If this policy changes, this file is updated in place and the **Last updated** date above is revised. The current version is always available at <https://github.com/takagiy/tweetmuff/blob/main/PRIVACY.md>.
+If this policy changes, this file is updated in place and the **Last updated** date above is revised. The current version is always at <https://github.com/takagiy/tweetmuff/blob/main/PRIVACY.md>.
 
 ## Contact
 
