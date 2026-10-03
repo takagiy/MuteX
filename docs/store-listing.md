@@ -85,19 +85,19 @@ No. All code is included in the extension package. Nothing is fetched or evaluat
 
 ### Data usage disclosure
 
-Chrome Web Store policy requires disclosing data that is handled locally, even if it is never transmitted. tweetmuff never transmits anything, but it does handle the following on the device:
+Chrome Web Store policy requires disclosing data that is handled locally, even if it is never transmitted (User Data FAQ, Q3). tweetmuff never transmits anything, but it does handle the following on the device. Under-disclosing is a policy violation while over-disclosing isn't, so borderline categories are disclosed. Keep this table, PRIVACY.md, and the extension's behavior in sync.
 
 | Category | Collected? | What and why |
 | --- | --- | --- |
-| Personally identifiable information | No | |
-| Website content | **Yes** | Reads and modifies X's timeline API responses in the page to remove posts that contain muted words. Reads the user's muted-word list from X's settings response and stores it locally. Reads the numeric account ID from X's `twid` cookie, only to avoid hiding the user's own posts; it is never stored or transmitted. |
+| Personally identifiable information | **Yes** | Reads the signed-in user's numeric X account ID from X's `twid` cookie, only to avoid hiding the user's own posts. Disclosed to be safe: the FAQ's PII examples include any type of identification number, and Google Play's data definitions list account IDs as personal identifiers. Never stored or transmitted. |
+| Website content | **Yes** | Reads and modifies X's timeline API responses in the page to remove posts that contain muted words. Reads the user's muted-word list from X's settings response and stores it locally. |
 | Health information | No | |
 | Financial and payment information | No | |
 | Authentication information | No | Auth cookies and tokens are not used. |
 | Personal communications | No | Direct messages are not touched. |
 | Location | No | |
 | Web history | No | |
-| User activity | No | |
+| User activity | **Yes** | Hooks the requests X's web app makes on x.com and checks their URLs to find timeline responses to filter (the form's "network monitoring" example). Nothing about the requests is recorded or transmitted. |
 
 Certifications (tick all three):
 
