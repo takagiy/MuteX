@@ -1,12 +1,12 @@
-// Shared by the popup and the options page.
+// Shared by the popup and the options page. Loaded after src/core.js.
 'use strict';
-const DEFAULT = { enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0 };
 const X_MUTE_SETTINGS = 'https://x.com/settings/muted_keywords';
 const $ = (id) => document.getElementById(id);
 
+// Always the expected shape, even if what's stored is damaged, so the pages still render.
 async function getState() {
   const { state } = await chrome.storage.local.get('state');
-  return { ...DEFAULT, ...(state || {}) };
+  return TweetmuffCore.normalizeState(state);
 }
 
 async function update(patch) {
@@ -15,7 +15,7 @@ async function update(patch) {
 
 function onStateChange(render) {
   chrome.storage.onChanged.addListener((c, area) => {
-    if (area === 'local' && c.state) render({ ...DEFAULT, ...c.state.newValue });
+    if (area === 'local' && c.state) render(TweetmuffCore.normalizeState(c.state.newValue));
   });
   getState().then(render);
 }

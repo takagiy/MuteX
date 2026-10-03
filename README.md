@@ -47,7 +47,8 @@ Load the cloned folder with **Load unpacked** as above.
 - If any tweet in a conversation module (a reply thread) matches, the whole module is dropped, so no broken thread line is left behind. In list-style modules such as **Discover more** under a post, only the matching posts are removed. If none are left, the whole section is removed so no bare header remains.
 - Cursor entries are always kept, so infinite scroll keeps working.
 - Your own posts are never hidden.
-- tweetmuff never touches X's DOM. It works only on API responses, so changes to X's markup can't break it. If X changes a response shape so much that the filter no longer recognizes it, posts just show up as usual; the page doesn't break.
+- tweetmuff never touches X's DOM. It works only on API responses, so changes to X's markup can't break it.
+- It's fail-safe. If a response, or part of one, doesn't look the way tweetmuff expects, that part is passed through exactly as X sent it, and everything else is still filtered. tweetmuff never makes X's own requests fail. A mute-list response in an unknown format never overwrites your saved list, and damaged saved settings only drop the broken entries.
 
 ### Matching
 

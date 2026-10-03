@@ -170,3 +170,54 @@ test('TweetDetail: replies and "Discover more"', () => {
   expect(discover).toEqual(['related one', 'related three']); // only the matching related post is removed
   expect(ins.some((i) => i.moduleItems)).toBe(false);
 });
+
+// --- fail-safety: unexpected data must never stop the rest from working ---
+
+test('damaged saved state drops only the bad parts', () => {
+  const m = core.compile({
+    enabled: 'yes',
+    imported: { not: 'a list' },
+    local: [null, { keyword: 5 }, { keyword: '  ' }, { keyword: 'spoiler', validUntil: 'soon' }],
+  });
+  expect(core.judgeText('a spoiler', m)).toBe(true);
+  expect(core.normalizeState(undefined)).toEqual({ enabled: true, applyToFollowing: false, imported: [], local: [], lastSync: 0 });
+});
+
+test('an entry it cannot read is kept, and the rest is still filtered', () => {
+  const odd = tweetEntry(tweet({ text: 'odd spoiler' }));
+  Object.defineProperty(odd.content.itemContent.tweet_results, 'result', {
+    get() { throw new TypeError('unexpected shape'); },
+    enumerable: true,
+  });
+  const d = homeTimeline([tweetEntry(tweet({ text: 'spoiler A' })), odd, tweetEntry(tweet({ text: 'fine' }))]);
+  const errors = [];
+  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler'])), { onError: (e) => errors.push(e) })).toBe(1);
+  expect(contentEntries(d)).toContain(odd);
+  expect(contentEntries(d).length).toBe(2);
+  expect(errors.map((e) => e.message)).toEqual(['unexpected shape']);
+});
+
+test('an unrecognizable mute list keeps the saved one', () => {
+  expect(core.fromXMuteList({ muted_keywords: [{ text: 'spoiler' }] })).toBe(null); // e.g. X renamed "keyword"
+  expect(core.fromXMuteList({ muted_keywords: [{ keyword: 'ok' }, { text: 'x' }, null] })).toEqual([
+    { keyword: 'ok', excludeFollowing: false, validUntil: null },
+  ]);
+  expect(core.fromXMuteList({ muted_keywords: [] })).toEqual([]); // a genuinely empty list still applies
+});
+
+test('user regexes that cannot be combined still work one by one', () => {
+  const Real = globalThis.RegExp;
+  globalThis.RegExp = function (src, flags) {
+    if (String(src).includes('cat') && String(src).includes('do+g')) throw new SyntaxError('cannot combine');
+    return new Real(src, flags);
+  };
+  let m;
+  try {
+    m = core.compile({ local: [{ keyword: 'cat' }, { keyword: '/do+g/' }] });
+  } finally {
+    globalThis.RegExp = Real;
+  }
+  expect(core.judgeText('a dooog', m)).toBe(true);
+  expect(core.judgeText('a cat', m)).toBe(true);
+  expect(core.judgeText('a bird', m)).toBe(false);
+});
