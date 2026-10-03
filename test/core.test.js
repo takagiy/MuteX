@@ -191,10 +191,10 @@ test('an entry it cannot read is kept, and the rest is still filtered', () => {
   });
   const d = homeTimeline([tweetEntry(tweet({ text: 'spoiler A' })), odd, tweetEntry(tweet({ text: 'fine' }))]);
   const errors = [];
-  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler'])), { onError: (e) => errors.push(e) })).toBe(1);
+  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler'])), { onError: (e, step) => errors.push([e.message, step]) })).toBe(1);
   expect(contentEntries(d)).toContain(odd);
   expect(contentEntries(d).length).toBe(2);
-  expect(errors.map((e) => e.message)).toEqual(['unexpected shape']);
+  expect(errors).toEqual([['unexpected shape', 'entries']]);
 });
 
 test('an unrecognizable mute list keeps the saved one', () => {
@@ -222,54 +222,34 @@ test('user regexes that cannot be combined still work one by one', () => {
   expect(core.judgeText('a bird', m)).toBe(false);
 });
 
-// --- problem reports: must be safe to paste into a public issue ---
+// --- problem log: fixed codes only, never anything taken from X's data ---
 
-test('redact removes identifying and secret data', () => {
-  const r = (s) => core.redact(s);
-  expect(r('chrome-extension://abcdefghijklmnopabcdefghijklmnop/src/core.js:261:33')).toBe('src/core.js:261:33');
-  expect(r('Invalid regular expression: /(?:(?<![a-z0-9_])spoiler(?![a-z0-9_]))|(?:secret)/u: Invalid group')).toBe(
-    'Invalid regular expression: /…/u: Invalid group',
-  );
-  expect(r('GET https://x.com/i/api/graphql/abc/HomeTimeline?variables=%7B%22userId%22%3A%221234567890%22%7D failed')).toBe(
-    'GET https://x.com/i/api/graphql/abc/HomeTimeline failed',
-  );
-  expect(r('on https://x.com/someone/status/1234567890123')).toBe('on https://x.com/…');
-  expect(r("Cannot read properties of null (reading 'user_id_str')")).toBe("Cannot read properties of null (reading 'user_id_str')");
-  expect(r('Unexpected token \'s\', "spoiler leak"... is not valid JSON')).toBe('Unexpected token \'s\', "…"... is not valid JSON');
-  expect(r("X's list kept")).toBe("X's list kept"); // an apostrophe isn't a quote
-  expect(r('user 1234567890123456789 and tweet 2105874855296110811')).toBe('user <id> and tweet <id>');
-  expect(r('token FAKEbearerTOKENfakeBEARERtoken%3DfakeFAKEfakeFAKEfake')).toBe('token <token>');
-  expect(r('mail me@example.com')).toBe('mail <email>');
-  expect(r(String.raw`C:\Users\alice\x.js and /home/bob/x.js`)).toBe(String.raw`C:\Users\<user>\x.js and /home/<user>/x.js`);
-  expect(r('word '.repeat(100)).length).toBe(300);
+test('featureOf maps requests to fixed feature codes', () => {
+  const f = core.featureOf;
+  expect(f('https://x.com/i/api/graphql/q1/HomeTimeline?variables=1')).toBe('home');
+  expect(f('/i/api/graphql/q2/TweetDetail')).toBe('replies');
+  expect(f('/i/api/graphql/q3/UserTweets')).toBe('profiles');
+  expect(f('/i/api/graphql/q4/ExplorePage')).toBe('explore');
+  expect(f('/i/api/1.1/search/typeahead.json?q=secret')).toBe('suggestions');
+  expect(f('/i/api/2/notifications/all.json')).toBe('notifications');
+  expect(f('/i/api/graphql/q5/SomethingNew')).toBe('other');
+  expect(f(undefined)).toBe('other');
 });
 
-test('featureFor names the affected feature', () => {
-  const f = (u) => core.featureFor(u);
-  expect(f('https://x.com/i/api/graphql/q1/HomeTimeline?variables=1')).toEqual({ feature: 'Home timeline', source: 'HomeTimeline' });
-  expect(f('/i/api/graphql/q2/TweetDetail')).toEqual({ feature: 'Replies and "Discover more"', source: 'TweetDetail' });
-  expect(f('/i/api/graphql/q3/UserTweets').feature).toBe('Profiles');
-  expect(f('/i/api/graphql/q4/ExplorePage').feature).toBe('Explore and trends');
-  expect(f('/i/api/1.1/search/typeahead.json?q=secret')).toEqual({ feature: 'Search suggestions', source: 'typeahead' });
-  expect(f('/i/api/graphql/q5/SomethingNew')).toEqual({ feature: 'Other timelines', source: 'SomethingNew' });
-  expect(f('/i/api/2/timeline/conversation/1234567890123.json')).toEqual({ feature: 'Other timelines', source: '2/timeline/conversation/<id>.json' });
+test('problemOf keeps only codes and ignores the error message', () => {
+  const e = new TypeError('leaked "my muted words" from user 1234567890 https://x.com/someone');
+  const p = core.problemOf(e, 'home', 'entries');
+  expect(p).toEqual({ feature: 'home', step: 'entries', kind: 'TypeError' });
+  expect(JSON.stringify(p)).not.toMatch(/muted|1234567890|someone/);
+  class WeirdError extends Error {}
+  WeirdError.prototype.name = 'Secret: my muted words';
+  expect(core.problemOf(new WeirdError('x'), 'not-a-feature', 'not-a-step')).toEqual({ feature: 'other', step: 'response', kind: 'Error' });
+  expect(core.problemOf({ name: 'UnknownFormat' }, 'import', 'format').kind).toBe('UnknownFormat');
 });
 
-test('toProblem keeps only redacted message and own stack frames', () => {
-  const e = new TypeError("Cannot read properties of null (reading 'user_id_str')");
-  e.stack = [
-    "TypeError: Cannot read properties of null (reading 'user_id_str')",
-    '    at chrome-extension://abcdefghijklmnopabcdefghijklmnop/src/core.js:261:33',
-    '    at attempt (chrome-extension://abcdefghijklmnopabcdefghijklmnop/src/core.js:202:14)',
-    '    at Array.filter (<anonymous>)',
-    '    at XMLHttpRequest.get [as responseText] (chrome-extension://abcdefghijklmnopabcdefghijklmnop/src/main.js:115:20)',
-    '    at https://abs.twimg.com/responsive-web/client-web/main.abc.js:1:2345',
-  ].join('\n');
-  expect(core.toProblem(e, 'Home timeline', 'HomeTimeline')).toEqual({
-    feature: 'Home timeline',
-    source: 'HomeTimeline',
-    message: "TypeError: Cannot read properties of null (reading 'user_id_str')",
-    stack: ['(src/core.js:261:33)', 'attempt (src/core.js:202:14)', 'XMLHttpRequest.get (src/main.js:115:20)'],
-  });
-  expect(core.toProblem('weird 1234567890', 'X').message).toBe('weird <id>');
+test('isProblem accepts only known codes', () => {
+  expect(core.isProblem({ feature: 'home', step: 'entries', kind: 'TypeError' })).toBe(true);
+  expect(core.isProblem({ feature: 'home', step: 'entries', kind: 'TypeError: leaked text' })).toBe(false);
+  expect(core.isProblem({ feature: 'https://x.com/someone', step: 'entries', kind: 'Error' })).toBe(false);
+  expect(core.isProblem(null)).toBe(false);
 });

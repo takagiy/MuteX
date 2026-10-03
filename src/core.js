@@ -196,19 +196,19 @@
   }
 
   // Runs one step of the filter. If it throws (a response shape tweetmuff doesn't understand), that step is skipped,
-  // i.e. the item is kept as X sent it, and the rest of the response is still filtered.
-  function attempt(ctx, fn, fallback) {
+  // i.e. the item is kept as X sent it, and the rest of the response is still filtered. step is one of STEPS.
+  function attempt(ctx, step, fn, fallback) {
     try {
       return fn();
     } catch (e) {
-      ctx.onError(e);
+      ctx.onError(e, step);
       return fallback;
     }
   }
 
   // Removes items for which muted() is true; an item that can't be judged stays.
-  function keep(ctx, list, muted) {
-    const kept = list.filter((item) => !attempt(ctx, () => muted(item), false));
+  function keep(ctx, step, list, muted) {
+    const kept = list.filter((item) => !attempt(ctx, step, () => muted(item), false));
     ctx.removed += list.length - kept.length;
     return kept;
   }
@@ -221,7 +221,7 @@
     if (isCursor(e)) return false;
     const c = e?.content;
     if (Array.isArray(c?.items) && c.items.length && !/Conversation/.test(c.displayType || '')) {
-      c.items = keep(ctx, c.items, (it) => subtreeMuted(it, ctx));
+      c.items = keep(ctx, 'entries', c.items, (it) => subtreeMuted(it, ctx));
       return c.items.length === 0;
     }
     return subtreeMuted(e, ctx);
@@ -231,13 +231,13 @@
     for (let i = instructions.length - 1; i >= 0; i--) {
       const ins = instructions[i];
       if (!ins || typeof ins !== 'object') continue;
-      if (Array.isArray(ins.entries)) ins.entries = keep(ctx, ins.entries, (e) => entryMuted(e, ctx));
+      if (Array.isArray(ins.entries)) ins.entries = keep(ctx, 'entries', ins.entries, (e) => entryMuted(e, ctx));
       if (Array.isArray(ins.moduleItems)) {
         const before = ins.moduleItems.length;
-        ins.moduleItems = keep(ctx, ins.moduleItems, (e) => subtreeMuted(e, ctx));
+        ins.moduleItems = keep(ctx, 'entries', ins.moduleItems, (e) => subtreeMuted(e, ctx));
         if (!ins.moduleItems.length && before) instructions.splice(i, 1);
       }
-      if (ins.entry && attempt(ctx, () => !isCursor(ins.entry) && subtreeMuted(ins.entry, ctx), false)) {
+      if (ins.entry && attempt(ctx, 'entries', () => !isCursor(ins.entry) && subtreeMuted(ins.entry, ctx), false)) {
         instructions.splice(i, 1);
         ctx.removed++;
       }
@@ -256,7 +256,7 @@
     if (!tweets || typeof tweets !== 'object' || !Array.isArray(obj.timeline?.instructions)) return;
     const muted = new Set();
     for (const id in tweets) {
-      attempt(ctx, () => {
+      attempt(ctx, 'legacy', () => {
         const t = tweets[id];
         const seg = { userId: t.user_id_str, following: !!users[t.user_id_str]?.following, text: cleanText(t.full_text || t.text) };
         if (segmentMuted(seg, ctx.m, ctx.selfId)) muted.add(id);
@@ -275,7 +275,7 @@
     for (const ins of obj.timeline.instructions) {
       const ae = ins?.addEntries;
       if (!Array.isArray(ae?.entries)) continue;
-      ae.entries = keep(ctx, ae.entries, (e) => !isCursor(e) && !!e.content?.item?.content?.tweet && refsMuted(e.content.item.content.tweet));
+      ae.entries = keep(ctx, 'legacy', ae.entries, (e) => !isCursor(e) && !!e.content?.item?.content?.tweet && refsMuted(e.content.item.content.tweet));
     }
   }
 
@@ -285,7 +285,7 @@
     const before = ctx.removed;
     for (const key of ['topics', 'hashtags', 'events']) {
       if (!Array.isArray(obj[key])) continue;
-      obj[key] = keep(ctx, obj[key], (item) => {
+      obj[key] = keep(ctx, 'suggestions', obj[key], (item) => {
         const strings = [];
         JSON.stringify(item, (k, v) => {
           if (typeof v === 'string' && !/url|id$|_str$/i.test(k)) strings.push(v);
@@ -299,12 +299,12 @@
   }
 
   // Mutates obj in place and returns how many entries/items were removed. A response shape it doesn't understand
-  // never makes it throw: those parts are left as X sent them, and each problem is reported to opts.onError.
+  // never makes it throw: those parts are left as X sent them, and each problem is reported to opts.onError(error, step).
   function filterPayload(obj, m, opts = {}) {
     if (!obj || typeof obj !== 'object' || isEmpty(m)) return 0;
     const ctx = { m, selfId: opts.selfId || null, removed: 0, onError: opts.onError || (() => {}) };
-    attempt(ctx, () => filterLegacyV2(obj, ctx));
-    attempt(ctx, () => filterTypeahead(obj, ctx));
+    attempt(ctx, 'legacy', () => filterLegacyV2(obj, ctx));
+    attempt(ctx, 'suggestions', () => filterTypeahead(obj, ctx));
     const seen = new Set();
     const visit = (o, depth) => {
       if (!o || typeof o !== 'object' || depth > 30 || seen.has(o)) return;
@@ -312,11 +312,11 @@
       if (Array.isArray(o)) { for (const v of o) visit(v, depth + 1); return; }
       for (const k in o) {
         const v = o[k];
-        if (k === 'instructions' && Array.isArray(v)) attempt(ctx, () => filterInstructions(v, ctx));
+        if (k === 'instructions' && Array.isArray(v)) attempt(ctx, 'entries', () => filterInstructions(v, ctx));
         else visit(v, depth + 1);
       }
     };
-    attempt(ctx, () => visit(obj, 0));
+    attempt(ctx, 'entries', () => visit(obj, 0));
     return ctx.removed;
   }
 
@@ -333,65 +333,50 @@
     return list.length && !rules.length ? null : rules;
   }
 
-  // --- problem reports (shown on the options page and meant to be pasteable into a public GitHub issue) ---
+  // --- problem log (shown on the options page's Status section) ---
+  // A problem is recorded only as codes from these fixed lists. No error message, URL, or anything else taken from
+  // X's data is kept, so the log never holds user data and a copied report is safe to post publicly.
+  const FEATURES = ['home', 'replies', 'search', 'suggestions', 'profiles', 'explore', 'notifications', 'bookmarks', 'lists', 'other',
+    'settings', 'import', 'network'];
+  const STEPS = ['entries', 'legacy', 'suggestions', 'response', 'settings', 'format', 'import', 'hook'];
+  const KINDS = ['TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError', 'DataCloneError', 'UnknownFormat', 'Error'];
 
-  // Removes anything that could identify the user or be abused once a report is posted publicly.
-  function redact(text) {
-    return String(text ?? '')
-      .replace(/chrome-extension:\/\/[a-p]{32}\//g, '') // extension id
-      .replace(/(Invalid regular expression: )\/.*\/([a-z]*):/g, '$1/…/$2:') // regex source = the user's muted words
-      .replace(/https?:\/\/[^\s'"`)]+/g, (u) => {
-        try {
-          const url = new URL(u);
-          // Keep only API endpoint paths; page paths can contain user names.
-          return url.origin + (/(^|\.)(x|twitter)\.com$/.test(url.hostname) && !url.pathname.startsWith('/i/api/') ? '/…' : url.pathname);
-        } catch {
-          return '<url>';
-        }
-      })
-      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>')
-      .replace(/([A-Za-z]:\\Users\\|\/Users\/|\/home\/)[^\\/\s]+/g, '$1<user>')
-      .replace(/(?<!\w)(["'`])(.*?)\1(?!\w)/g, (m, q, s) => (/^[A-Za-z_$][\w$]{0,39}$/.test(s) ? m : `${q}…${q}`)) // quoted data; identifiers stay
-      .replace(/\b[A-Za-z0-9%_-]{32,}\b/g, '<token>')
-      .replace(/\b\d{6,}\b/g, '<id>')
-      .slice(0, 300);
-  }
-
-  // Which feature a request belongs to, named for people.
-  const FEATURES = [
-    [/^(HomeTimeline|HomeLatestTimeline)$/, 'Home timeline'],
-    [/^TweetDetail$/, 'Replies and "Discover more"'],
-    [/^SearchTimeline$/, 'Search results'],
-    [/^(User\w*|Likes)$/, 'Profiles'],
-    [/^(ExplorePage|ExploreSidebar|GenericTimelineById|\w*Trends?\w*)$/, 'Explore and trends'],
-    [/^Notifications?\w*$/, 'Notifications'],
-    [/^Bookmarks?\w*$/, 'Bookmarks'],
-    [/^List\w*$/, 'Lists'],
+  const TIMELINES = [
+    [/^(HomeTimeline|HomeLatestTimeline)$/, 'home'],
+    [/^TweetDetail$/, 'replies'],
+    [/^SearchTimeline$/, 'search'],
+    [/^(User\w*|Likes)$/, 'profiles'],
+    [/^(ExplorePage|ExploreSidebar|GenericTimelineById|\w*Trends?\w*)$/, 'explore'],
+    [/^Notifications?\w*$/, 'notifications'],
+    [/^Bookmarks?\w*$/, 'bookmarks'],
+    [/^List\w*$/, 'lists'],
   ];
-  function featureFor(url) {
+
+  // Which feature (an id from FEATURES) a request to X's API belongs to.
+  function featureOf(url) {
     const path = String(url || '').split(/[?#]/)[0];
-    if (/\/search\/typeahead\.json$/.test(path)) return { feature: 'Search suggestions', source: 'typeahead' };
+    if (/\/search\/typeahead\.json$/.test(path)) return 'suggestions';
+    if (/\/2\/notifications\//.test(path)) return 'notifications';
     const op = (path.match(/\/graphql\/[^/]+\/(\w+)$/) || [])[1];
-    if (op) return { feature: (FEATURES.find(([re]) => re.test(op)) || [, 'Other timelines'])[1], source: op };
-    if (/\/2\/notifications\//.test(path)) return { feature: 'Notifications', source: 'notifications' };
-    return { feature: 'Other timelines', source: redact((path.match(/\/i\/api\/(.+)$/) || [, 'unknown'])[1]) };
+    return (op && TIMELINES.find(([re]) => re.test(op))?.[1]) || 'other';
   }
 
-  // A redacted, compact description of an error: what failed, the message, and where in tweetmuff's own code.
-  function toProblem(error, feature, source) {
-    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-    const stack = [];
-    for (const line of String(error?.stack || '').split('\n')) {
-      const m = line.match(/at (?:([\w$.]+) )?\(?.*?((?:core|main|bridge)\.js:\d+:\d+)\)?\s*$/);
-      if (m) stack.push(`${m[1] ? m[1] + ' ' : ''}(src/${m[2]})`);
-      if (stack.length === 6) break;
-    }
-    return { feature: redact(feature).slice(0, 80), source: redact(source || '').slice(0, 80), message: redact(message), stack };
+  // Reduces an error to { feature, step, kind } codes; the error's message is never looked at.
+  function problemOf(error, feature, step) {
+    return {
+      feature: FEATURES.includes(feature) ? feature : 'other',
+      step: STEPS.includes(step) ? step : 'response',
+      kind: KINDS.includes(error?.name) ? error.name : 'Error',
+    };
+  }
+
+  function isProblem(p) {
+    return !!p && FEATURES.includes(p.feature) && STEPS.includes(p.step) && KINDS.includes(p.kind);
   }
 
   const api = {
     normalize, keywordSource, normalizeState, compile, isEmpty, judgeText, cleanText, tweetSegments, filterPayload, fromXMuteList,
-    redact, featureFor, toProblem,
+    featureOf, problemOf, isProblem,
   };
   root.TweetmuffCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
