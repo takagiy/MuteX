@@ -40,8 +40,7 @@ size: store
 
 <div class="stage">
 <div class="window shadow">
-<div class="tabs"><span class="tab"><img src="../icons/icon.svg" alt="">tweetmuff settings</span></div>
-<div class="bar"><span class="omnibox"><b>tweetmuff</b>chrome-extension://…/pages/options.html</span></div>
+<div class="toolbar"><span class="nav"><i></i><i></i><i></i></span><span class="omnibox"><b>tweetmuff</b>chrome-extension://…/pages/options.html</span></div>
 <img class="page" src=".cache/options.png" alt="">
 </div>
 </div>

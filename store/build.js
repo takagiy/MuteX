@@ -22,7 +22,10 @@ const SAMPLE_STATE = {
     ['spoiler', true], ['giveaway'], ['crypto'], ['NFT'], ['airdrop'], ['#ad'],
     ['promo code'], ['leak', true], ['rumor'], ['ネタバレ', true], ['follow back'], ['finale', true],
   ].map(([keyword, excludeFollowing = false]) => ({ keyword, excludeFollowing, validUntil: null })),
-  local: ['/season \\d+ finale/', 'betting'].map((keyword) => ({ keyword, excludeFollowing: false })),
+  local: ['/season \\d+ finale/', 'betting', '#sponsored', 'presale', '/free (iphone|ps5)/'].map((keyword) => ({
+    keyword,
+    excludeFollowing: false,
+  })),
 };
 
 function findChrome() {
@@ -99,9 +102,15 @@ try {
   });
   await capture(browser, base, {
     page: 'pages/options.html',
-    width: 460,
+    width: 620,
     file: 'options.png',
-    clip: () => ({ x: 0, y: 0, width: 460, height: document.querySelector('main').getBoundingClientRect().bottom }),
+    // The whole page, with its outer top/bottom padding trimmed so it fits the slide at a readable size.
+    clip: () => {
+      const main = document.querySelector('main');
+      const top = main.firstElementChild.getBoundingClientRect().top - 12;
+      const bottom = main.lastElementChild.getBoundingClientRect().bottom + 20;
+      return { x: 0, y: top, width: 620, height: bottom - top };
+    },
   });
 
   const page = await browser.newPage();
