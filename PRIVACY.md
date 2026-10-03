@@ -5,8 +5,6 @@
 
 tweetmuff works only on x.com. It handles the data below only to filter posts and to show its own status on its settings page. It never sends anything anywhere: it makes no network requests of its own and has no server.
 
-The sections follow the data categories of the Chrome Web Store privacy form.
-
 ## Personally identifiable information
 
 - **X account ID** (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie, through the Cookie Store API, and keeps the ID in memory only. It's never stored or sent.
