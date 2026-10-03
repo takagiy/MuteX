@@ -10,7 +10,6 @@
   window.__tweetmuff = true;
 
   const STATE_KEY = 'tweetmuff:state';
-  const MUTE_LIST_PATH = '/i/api/1.1/mutes/keywords/list.json';
 
   // Each distinct problem is reported once per page: a console note for whoever is debugging locally, plus fixed codes
   // ({ feature, step, kind }, no message or data) the bridge keeps for the options page's Status section.
@@ -56,15 +55,10 @@
     });
   } catch {}
 
-  // ---------- response filtering ----------
-  function isTimelineUrl(url) {
-    return /\/i\/api\/(graphql\/|2\/|1\.1\/search\/typeahead\.json)/.test(url)
-      || /api\.(x|twitter)\.com\/(graphql|2)\//.test(url);
-  }
-
-  function filterObj(obj, url) {
+  // ---------- response filtering (only the requests listed in core's GRAPHQL_FEATURES / REST_FEATURES) ----------
+  function filterObj(obj, feature) {
     if (core.isEmpty(matcher)) return 0;
-    const onError = (e, step = 'response') => report(e, core.featureOf(url), step);
+    const onError = (e, step = 'response') => report(e, feature, step);
     try {
       return core.filterPayload(obj, matcher, { selfId, onError });
     } catch (e) {
@@ -74,11 +68,11 @@
   }
 
   // Returns the filtered JSON text, or the original text whenever it isn't JSON or nothing was removed.
-  function filterText(text, url) {
+  function filterText(text, feature) {
     if (core.isEmpty(matcher) || typeof text !== 'string' || !text || text[0] !== '{') return text;
     let obj;
     try { obj = JSON.parse(text); } catch { return text; }
-    return filterObj(obj, url) ? JSON.stringify(obj) : text;
+    return filterObj(obj, feature) ? JSON.stringify(obj) : text;
   }
 
   // ---------- XMLHttpRequest ----------
@@ -90,9 +84,8 @@
 
   XP.open = function (method, url) {
     try {
-      const u = String(url);
-      this[META] = { url: u, timeline: isTimelineUrl(u), raw: undefined, out: undefined };
-      if (u.includes(MUTE_LIST_PATH)) {
+      this[META] = { feature: core.filteredFeature(url), raw: undefined, out: undefined };
+      if (core.isMuteListRequest(url)) {
         this.addEventListener('load', () => {
           if (this.status !== 200) return;
           let json;
@@ -109,21 +102,21 @@
   function filtered(xhr, raw) {
     try {
       const meta = xhr[META];
-      if (!meta || !meta.timeline || xhr.readyState !== 4) return raw;
+      if (!meta || !meta.feature || xhr.readyState !== 4) return raw;
       if (meta.raw === raw && meta.out !== undefined) return meta.out;
       let out = raw;
       if (typeof raw === 'string') {
-        out = filterText(raw, meta.url);
+        out = filterText(raw, meta.feature);
       } else if (raw && Object.getPrototypeOf(raw) === Object.prototype) {
         // responseType 'json': filter a copy, so X's own object is never left half-edited.
         const copy = structuredClone(raw);
-        if (filterObj(copy, meta.url)) out = copy;
+        if (filterObj(copy, meta.feature)) out = copy;
       }
       meta.raw = raw;
       meta.out = out;
       return out;
     } catch (e) {
-      report(e, core.featureOf(xhr[META]?.url), 'response');
+      report(e, xhr[META]?.feature, 'response');
       return raw;
     }
   }
@@ -141,21 +134,22 @@
   const origFetch = window.fetch;
   window.fetch = async function (input) {
     const res = await origFetch.apply(this, arguments);
-    let url = '';
+    let feature = null;
     try {
-      url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
-      if (url.includes(MUTE_LIST_PATH) && res.ok) res.clone().json().then(importFromJson, () => {});
-      if (!isTimelineUrl(url) || core.isEmpty(matcher) || !res.ok) return res;
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
+      if (core.isMuteListRequest(url) && res.ok) res.clone().json().then(importFromJson, () => {});
+      feature = core.filteredFeature(url);
+      if (!feature || core.isEmpty(matcher) || !res.ok) return res;
       if (!(res.headers.get('content-type') || '').includes('json')) return res;
       // Read a clone, so the original response is still intact to hand back if anything goes wrong.
       const text = await res.clone().text();
-      const out = filterText(text, url);
+      const out = filterText(text, feature);
       if (out === text) return res;
       const r2 = new Response(out, { status: res.status, statusText: res.statusText, headers: res.headers });
       Object.defineProperty(r2, 'url', { value: res.url });
       return r2;
     } catch (e) {
-      report(e, core.featureOf(url), 'response');
+      report(e, feature, 'response');
       return res;
     }
   };

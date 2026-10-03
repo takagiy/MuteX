@@ -91,20 +91,6 @@ test('module items, pinned entry and trends', () => {
   expect(ins.find((i) => i.entries).entries.map((e) => e.content.itemContent.name)).toEqual(['#Weather']);
 });
 
-test('legacy v2 globalObjects shape', () => {
-  const d = {
-    globalObjects: {
-      tweets: { 1: { full_text: 'spoiler', user_id_str: '9' }, 2: { full_text: 'fine', user_id_str: '9' }, 3: { full_text: 'q', user_id_str: '9', quoted_status_id_str: '1' } },
-      users: { 9: { following: false } },
-    },
-    timeline: {
-      instructions: [{ addEntries: { entries: ['1', '2', '3'].map((id) => ({ entryId: 'tweet-' + id, content: { item: { content: { tweet: { id } } } } })) } }],
-    },
-  };
-  expect(core.filterPayload(d, core.compile(rulesOf(['spoiler'])))).toBe(2);
-  expect(d.timeline.instructions[0].addEntries.entries.map((e) => e.entryId)).toEqual(['tweet-2']);
-});
-
 test('disabled = untouched', () => {
   const { data } = sampleTimeline();
   expect(core.filterPayload(data, core.compile({ ...rulesOf(['spoiler']), enabled: false }))).toBe(0);
@@ -224,16 +210,30 @@ test('user regexes that cannot be combined still work one by one', () => {
 
 // --- problem log: fixed codes only, never anything taken from X's data ---
 
-test('featureOf maps requests to fixed feature codes', () => {
-  const f = core.featureOf;
+test('only the allowlisted X requests are filtered', () => {
+  const f = core.filteredFeature;
   expect(f('https://x.com/i/api/graphql/q1/HomeTimeline?variables=1')).toBe('home');
   expect(f('/i/api/graphql/q2/TweetDetail')).toBe('replies');
   expect(f('/i/api/graphql/q3/UserTweets')).toBe('profiles');
-  expect(f('/i/api/graphql/q4/ExplorePage')).toBe('explore');
+  expect(f('/i/api/graphql/q4/ListLatestTweetsTimeline')).toBe('lists');
+  expect(f('/i/api/graphql/q5/ExplorePage')).toBe('explore');
+  expect(f('/i/api/graphql/q6/NotificationsTimeline')).toBe('notifications');
   expect(f('/i/api/1.1/search/typeahead.json?q=secret')).toBe('suggestions');
-  expect(f('/i/api/2/notifications/all.json')).toBe('notifications');
-  expect(f('/i/api/graphql/q5/SomethingNew')).toBe('other');
-  expect(f(undefined)).toBe('other');
+  // anything else passes through untouched
+  expect(f('/i/api/graphql/q7/SomethingNew')).toBe(null);
+  expect(f('/i/api/graphql/q8/toString')).toBe(null);
+  expect(f('/i/api/2/notifications/all.json')).toBe(null);
+  expect(f('https://api.x.com/graphql/q1/HomeTimeline')).toBe(null);
+  expect(f('https://example.com/i/api/graphql/q1/HomeTimeline')).toBe(null);
+  expect(f('/i/api/graphql/q1/HomeTimeline/extra')).toBe(null);
+  expect(f(undefined)).toBe(null);
+});
+
+test('the mute-list request is recognized exactly', () => {
+  expect(core.isMuteListRequest('https://x.com/i/api/1.1/mutes/keywords/list.json')).toBe(true);
+  expect(core.isMuteListRequest('/i/api/1.1/mutes/keywords/list.json?x=1')).toBe(true);
+  expect(core.isMuteListRequest('https://example.com/i/api/1.1/mutes/keywords/list.json')).toBe(false);
+  expect(core.isMuteListRequest('/other/i/api/1.1/mutes/keywords/list.json')).toBe(false);
 });
 
 test('problemOf keeps only codes and ignores the error message', () => {

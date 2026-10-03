@@ -46,7 +46,6 @@ const FEATURE_NAMES = {
 };
 const STEP_TEXT = {
   entries: "Couldn't read some items in X's response; they were shown unfiltered.",
-  legacy: "Couldn't read some items in X's response; they were shown unfiltered.",
   suggestions: "Couldn't read some search suggestions; they were shown unfiltered.",
   response: "Couldn't process X's response; it was shown unfiltered.",
   settings: "Couldn't load the saved settings.",

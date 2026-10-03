@@ -249,36 +249,6 @@
     return !!(c && (c.entryType === 'TimelineTimelineCursor' || c.__typename === 'TimelineTimelineCursor' || c.cursorType));
   }
 
-  // Legacy v2 shape (globalObjects + timeline.instructions[].addEntries), still used by some endpoints.
-  function filterLegacyV2(obj, ctx) {
-    const tweets = obj.globalObjects?.tweets;
-    const users = obj.globalObjects?.users || {};
-    if (!tweets || typeof tweets !== 'object' || !Array.isArray(obj.timeline?.instructions)) return;
-    const muted = new Set();
-    for (const id in tweets) {
-      attempt(ctx, 'legacy', () => {
-        const t = tweets[id];
-        const seg = { userId: t.user_id_str, following: !!users[t.user_id_str]?.following, text: cleanText(t.full_text || t.text) };
-        if (segmentMuted(seg, ctx.m, ctx.selfId)) muted.add(id);
-      });
-    }
-    // quotes / retweets inherit
-    for (const id in tweets) {
-      const t = tweets[id];
-      if (t && (muted.has(t.quoted_status_id_str) || muted.has(t.retweeted_status_id_str))) muted.add(id);
-    }
-    if (!muted.size) return;
-    const refsMuted = (o) => {
-      for (const m of JSON.stringify(o).matchAll(/"id":"(\d+)"/g)) if (muted.has(m[1])) return true;
-      return false;
-    };
-    for (const ins of obj.timeline.instructions) {
-      const ae = ins?.addEntries;
-      if (!Array.isArray(ae?.entries)) continue;
-      ae.entries = keep(ctx, 'legacy', ae.entries, (e) => !isCursor(e) && !!e.content?.item?.content?.tweet && refsMuted(e.content.item.content.tweet));
-    }
-  }
-
   // Search-box suggestions (/1.1/search/typeahead.json). Users are left alone, like X's own mute.
   function filterTypeahead(obj, ctx) {
     if (!('num_results' in obj && 'ordered_sections' in obj)) return;
@@ -303,7 +273,6 @@
   function filterPayload(obj, m, opts = {}) {
     if (!obj || typeof obj !== 'object' || isEmpty(m)) return 0;
     const ctx = { m, selfId: opts.selfId || null, removed: 0, onError: opts.onError || (() => {}) };
-    attempt(ctx, 'legacy', () => filterLegacyV2(obj, ctx));
     attempt(ctx, 'suggestions', () => filterTypeahead(obj, ctx));
     const seen = new Set();
     const visit = (o, depth) => {
@@ -338,27 +307,59 @@
   // X's data is kept, so the log never holds user data and a copied report is safe to post publicly.
   const FEATURES = ['home', 'replies', 'search', 'suggestions', 'profiles', 'explore', 'notifications', 'bookmarks', 'lists', 'other',
     'settings', 'import', 'network'];
-  const STEPS = ['entries', 'legacy', 'suggestions', 'response', 'settings', 'format', 'import', 'hook'];
+  const STEPS = ['entries', 'suggestions', 'response', 'settings', 'format', 'import', 'hook'];
   const KINDS = ['TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError', 'DataCloneError', 'UnknownFormat', 'Error'];
 
-  const TIMELINES = [
-    [/^(HomeTimeline|HomeLatestTimeline)$/, 'home'],
-    [/^TweetDetail$/, 'replies'],
-    [/^SearchTimeline$/, 'search'],
-    [/^(User\w*|Likes)$/, 'profiles'],
-    [/^(ExplorePage|ExploreSidebar|GenericTimelineById|\w*Trends?\w*)$/, 'explore'],
-    [/^Notifications?\w*$/, 'notifications'],
-    [/^Bookmarks?\w*$/, 'bookmarks'],
-    [/^List\w*$/, 'lists'],
-  ];
+  // --- the requests tweetmuff filters (keep in sync with PRIVACY.md) ---
+  // Only these are filtered; every other request passes through untouched. GraphQL URLs look like
+  // https://x.com/i/api/graphql/<query id>/<operation>, where the query id changes with X's releases.
+  const GRAPHQL_FEATURES = {
+    HomeTimeline: 'home',
+    HomeLatestTimeline: 'home',
+    TweetDetail: 'replies',
+    SearchTimeline: 'search',
+    UserTweets: 'profiles',
+    UserTweetsAndReplies: 'profiles',
+    UserMedia: 'profiles',
+    Likes: 'profiles',
+    UserHighlightsTweets: 'profiles',
+    UserArticlesTweets: 'profiles',
+    UserOriginalsTimeline: 'profiles',
+    UserRepliesTimeline: 'profiles',
+    UserRepostsTimeline: 'profiles',
+    UserPhotoTimeline: 'profiles',
+    UserVideoTimeline: 'profiles',
+    UserSuperFollowTweets: 'profiles',
+    ListLatestTweetsTimeline: 'lists',
+    ListRankedTweetsTimeline: 'lists',
+    Bookmarks: 'bookmarks',
+    BookmarkFolderTimeline: 'bookmarks',
+    BookmarkSearchTimeline: 'bookmarks',
+    ExplorePage: 'explore',
+    ExploreSidebar: 'explore',
+    GenericTimelineById: 'explore',
+    NotificationsTimeline: 'notifications',
+  };
+  const REST_FEATURES = { '/i/api/1.1/search/typeahead.json': 'suggestions' };
 
-  // Which feature (an id from FEATURES) a request to X's API belongs to.
-  function featureOf(url) {
-    const path = String(url || '').split(/[?#]/)[0];
-    if (/\/search\/typeahead\.json$/.test(path)) return 'suggestions';
-    if (/\/2\/notifications\//.test(path)) return 'notifications';
-    const op = (path.match(/\/graphql\/[^/]+\/(\w+)$/) || [])[1];
-    return (op && TIMELINES.find(([re]) => re.test(op))?.[1]) || 'other';
+  // The feature (an id from FEATURES) a request is filtered for, or null if tweetmuff leaves it alone.
+  function filteredFeature(url) {
+    let u;
+    try { u = new URL(String(url), 'https://x.com'); } catch { return null; }
+    if (u.hostname !== 'x.com') return null;
+    const op = (u.pathname.match(/^\/i\/api\/graphql\/[\w-]+\/(\w+)$/) || [])[1];
+    if (op) return Object.hasOwn(GRAPHQL_FEATURES, op) ? GRAPHQL_FEATURES[op] : null;
+    return Object.hasOwn(REST_FEATURES, u.pathname) ? REST_FEATURES[u.pathname] : null;
+  }
+
+  // X's own request for the user's muted-word list, whose response tweetmuff reads to import the list.
+  function isMuteListRequest(url) {
+    try {
+      const u = new URL(String(url), 'https://x.com');
+      return u.hostname === 'x.com' && u.pathname === '/i/api/1.1/mutes/keywords/list.json';
+    } catch {
+      return false;
+    }
   }
 
   // Reduces an error to { feature, step, kind } codes; the error's message is never looked at.
@@ -376,7 +377,7 @@
 
   const api = {
     normalize, keywordSource, normalizeState, compile, isEmpty, judgeText, cleanText, tweetSegments, filterPayload, fromXMuteList,
-    featureOf, problemOf, isProblem,
+    filteredFeature, isMuteListRequest, problemOf, isProblem,
   };
   root.TweetmuffCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
