@@ -3,6 +3,8 @@
 [![CI](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml/badge.svg)](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/takagiy/tweetmuff)](https://github.com/takagiy/tweetmuff/releases/latest)
 
+![tweetmuff: muted posts simply never show up. The popup shows only how many muted words are active, never the words themselves.](store/screenshots/1-popup.png)
+
 A Chrome extension that does X (Twitter) muted-word filtering on the client, for when X's own muting stops working.
 
 Posts that contain a muted word never reach the page. tweetmuff removes them from X's API responses before the web app renders anything, so you get no placeholder, no gap, and no "this post is hidden" notice.
