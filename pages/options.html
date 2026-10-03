@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tweetmuff settings</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1><img src="../icons/icon.svg" width="28" height="28" alt="">tweetmuff settings</h1>
+      <label class="switch" title="Enable / disable filtering">
+        <input type="checkbox" id="enabled">
+        <span></span>
+      </label>
+    </header>
+
+    <section>
+      <h2>Muted words from X</h2>
+      <p id="syncStatus" class="muted">Not synced</p>
+      <ul id="importedList"></ul>
+      <p class="muted small">Dashed: X skips this word for accounts you follow. Edit these on X, then open X's muted words settings so tweetmuff picks up the change.</p>
+      <button id="openSettings" class="secondary">Open X mute settings</button>
+    </section>
+
+    <section>
+      <h2>Extra muted words</h2>
+      <p class="muted small">One per line. <code>/regex/</code> is supported. Stored locally, never sent to X.</p>
+      <textarea id="local" rows="10" spellcheck="false"></textarea>
+      <div class="actions">
+        <button id="saveLocal">Save</button>
+        <span id="saved" class="muted small" hidden>Saved</span>
+      </div>
+    </section>
+
+    <section>
+      <label class="check">
+        <input type="checkbox" id="applyToFollowing">
+        Also apply to accounts you follow
+      </label>
+      <p class="muted small">When off, each word follows X's "exclude people you follow" setting.</p>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

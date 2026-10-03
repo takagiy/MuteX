@@ -12,6 +12,7 @@ if (!/^\d+(\.\d+){0,3}$/.test(manifest.version)) errors.push(`invalid version "$
 
 const refs = [
   manifest.action?.default_popup,
+  manifest.options_ui?.page,
   ...Object.values(manifest.icons || {}),
   ...(manifest.content_scripts || []).flatMap((c) => [...(c.js || []), ...(c.css || [])]),
 ].filter(Boolean);

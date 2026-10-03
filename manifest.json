@@ -6,7 +6,8 @@
   "homepage_url": "https://github.com/takagiy/tweetmuff",
   "description": "Hides X (Twitter) posts that contain your muted words, without a trace. Uses your existing X mute list.",
   "permissions": ["storage"],
-  "action": { "default_popup": "popup/popup.html", "default_title": "tweetmuff" },
+  "action": { "default_popup": "pages/popup.html", "default_title": "tweetmuff" },
+  "options_ui": { "page": "pages/options.html", "open_in_tab": true },
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "content_scripts": [
     {

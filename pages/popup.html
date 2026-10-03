@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>tweetmuff</title>
+<link rel="stylesheet" href="common.css">
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -15,14 +16,14 @@
   </header>
 
   <section>
-    <h2>Muted words from X</h2>
+    <h2>Muted words</h2>
     <p id="syncStatus" class="muted">Not synced</p>
-    <p class="muted small">tweetmuff picks up your list whenever X loads it. To refresh, open X's muted words settings.</p>
-    <button id="openSettings">Open X mute settings</button>
-    <details>
-      <summary id="importedSummary">Imported (0)</summary>
-      <ul id="importedList"></ul>
-    </details>
+    <p id="localStatus" class="muted"></p>
+    <div class="actions">
+      <button id="editWords">Edit muted words</button>
+      <button id="openSettings" class="secondary">Open X mute settings</button>
+    </div>
+    <p class="muted small hint">tweetmuff picks up your list whenever X loads it. To refresh, open X's muted words settings.</p>
   </section>
 
   <section>
@@ -33,14 +34,7 @@
     <p class="muted small">When off, each word follows X's "exclude people you follow" setting.</p>
   </section>
 
-  <section>
-    <h2>Extra muted words</h2>
-    <p class="muted small">One per line. <code>/regex/</code> is supported. Stored locally, never sent to X.</p>
-    <textarea id="local" rows="6" spellcheck="false"></textarea>
-    <button id="saveLocal">Save</button>
-    <span id="saved" class="muted small" hidden>Saved</span>
-  </section>
-
+  <script src="common.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
