@@ -1,8 +1,7 @@
 // tweetmuff page hook (runs in the page's MAIN world at document_start).
 // 1. Filters timeline API responses before X's app sees them, so muted posts are never rendered at all.
 // 2. Imports X's own muted-keyword list by reading the response whenever X itself fetches it.
-//    tweetmuff never makes API requests of its own.
-// 3. DOM safety net for anything that slips through an unknown response shape.
+// tweetmuff never makes API requests of its own and never touches X's DOM, so changes to X's markup can't break it.
 (function () {
   'use strict';
   if (window.__tweetmuff) return;
@@ -14,14 +13,11 @@
 
   // ---------- state (written by the isolated-world bridge into localStorage) ----------
   let matcher = core.compile(null);
-  const exempt = new Set(); // tweet ids allowed through because the author is followed
 
   function loadState() {
     let state = null;
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch {}
     matcher = core.compile(state);
-    exempt.clear();
-    scanDom(document);
   }
 
   function selfId() {
@@ -39,7 +35,7 @@
 
   function filterObj(obj) {
     if (core.isEmpty(matcher)) return 0;
-    try { return core.filterPayload(obj, matcher, { selfId: selfId(), exempt }); }
+    try { return core.filterPayload(obj, matcher, { selfId: selfId() }); }
     catch (e) { console.warn('[tweetmuff] filter error', e); return 0; }
   }
 
@@ -116,73 +112,6 @@
     const rules = core.fromXMuteList(json);
     if (rules) emit('tweetmuff:imported', { rules, at: Date.now() });
   }
-
-  // ---------- DOM safety net ----------
-  const HIDDEN = 'data-tweetmuff-hidden';
-
-  function installStyle() {
-    const s = document.createElement('style');
-    s.textContent = `[${HIDDEN}]{display:none!important}`;
-    (document.head || document.documentElement).appendChild(s);
-  }
-  if (document.documentElement) installStyle();
-  else document.addEventListener('readystatechange', installStyle, { once: true });
-
-  // Text of an element excluding link anchors pointing to t.co (their visible text is a URL).
-  function visibleText(el) {
-    let out = '';
-    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
-      acceptNode(n) {
-        if (n.nodeType === 1) return n.tagName === 'A' && /t\.co\//.test(n.getAttribute('href') || '') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
-        return NodeFilter.FILTER_ACCEPT;
-      },
-    });
-    while (w.nextNode()) out += w.currentNode.nodeValue;
-    return out;
-  }
-
-  function tweetId(article) {
-    const a = article.querySelector('a[href*="/status/"] time')?.closest('a');
-    return (a?.getAttribute('href')?.match(/\/status\/(\d+)/) || [])[1] || null;
-  }
-
-  function hide(el) {
-    if (el && !el.hasAttribute(HIDDEN)) el.setAttribute(HIDDEN, '');
-  }
-
-  function checkArticle(article) {
-    const id = tweetId(article);
-    if (id && exempt.has(id)) return;
-    const parts = [];
-    article.querySelectorAll('[data-testid="tweetText"], [data-testid="card.wrapper"]').forEach((n) => parts.push(visibleText(n)));
-    if (!parts.length) return;
-    if (core.judgeText(parts.join('\n'), matcher)) hide(article.closest('[data-testid="cellInnerDiv"]') || article);
-  }
-
-  function checkTrend(el) {
-    if (core.judgeText(el.innerText || el.textContent, matcher)) hide(el.closest('[data-testid="cellInnerDiv"]') || el);
-  }
-
-  const ARTICLE = 'article[data-testid="tweet"]';
-  const TREND = '[data-testid="trend"], [data-testid^="news_sidebar_article_"]';
-
-  function scanDom(root) {
-    if (!root || !root.querySelectorAll || core.isEmpty(matcher)) {
-      if (root === document && core.isEmpty(matcher)) document.querySelectorAll(`[${HIDDEN}]`).forEach((n) => n.removeAttribute(HIDDEN));
-      return;
-    }
-    if (root === document) document.querySelectorAll(`[${HIDDEN}]`).forEach((n) => n.removeAttribute(HIDDEN));
-    if (root.matches?.(ARTICLE)) checkArticle(root);
-    else if (root.closest?.(ARTICLE)) checkArticle(root.closest(ARTICLE));
-    root.querySelectorAll(ARTICLE).forEach(checkArticle);
-    if (root.matches?.(TREND)) checkTrend(root);
-    root.querySelectorAll(TREND).forEach(checkTrend);
-  }
-
-  new MutationObserver((records) => {
-    if (core.isEmpty(matcher)) return;
-    for (const r of records) for (const n of r.addedNodes) if (n.nodeType === 1) scanDom(n);
-  }).observe(document, { childList: true, subtree: true });
 
   // ---------- init ----------
   loadState();

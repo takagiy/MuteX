@@ -104,7 +104,6 @@
         t.article?.article_results?.result?.preview_text || '',
       ];
       out.push({
-        id: t.rest_id || legacy.id_str,
         userId: user?.rest_id || legacy.user_id_str,
         following: isFollowing(user),
         text: cleanText(parts.join('\n')),
@@ -115,12 +114,11 @@
     return out;
   }
 
-  // Returns 'mute' | 'exempt' | null for one segment.
-  function judge(seg, m, selfId) {
-    if (selfId && seg.userId === selfId) return null;
-    if (m.always && m.always.test(seg.text)) return 'mute';
-    if (m.unlessFollowing && m.unlessFollowing.test(seg.text)) return seg.following ? 'exempt' : 'mute';
-    return null;
+  // Whether one segment should be muted. The user's own posts never are.
+  function segmentMuted(seg, m, selfId) {
+    if (selfId && seg.userId === selfId) return false;
+    if (m.always && m.always.test(seg.text)) return true;
+    return !!(m.unlessFollowing && !seg.following && m.unlessFollowing.test(seg.text));
   }
 
   function judgeText(text, m) {
@@ -147,11 +145,9 @@
       if (muted || !o || typeof o !== 'object' || depth > 40) return;
       if (Array.isArray(o)) { for (const v of o) visit(v, depth + 1); return; }
       if (o.tweet_results && typeof o.tweet_results === 'object') {
-        const segs = tweetSegments(o.tweet_results.result);
-        for (const s of segs) {
-          const j = judge(s, ctx.m, ctx.selfId);
-          if (j === 'mute') { muted = true; return; }
-          if (j === 'exempt' && s.id) ctx.exempt.add(s.id);
+        if (tweetSegments(o.tweet_results.result).some((s) => segmentMuted(s, ctx.m, ctx.selfId))) {
+          muted = true;
+          return;
         }
       }
       const txt = itemText(o);
@@ -219,10 +215,8 @@
     for (const id in tweets) {
       const t = tweets[id];
       const u = users[t.user_id_str];
-      const seg = { id, userId: t.user_id_str, following: !!u?.following, text: cleanText(t.full_text || t.text) };
-      const j = judge(seg, ctx.m, ctx.selfId);
-      if (j === 'mute') muted.add(id);
-      else if (j === 'exempt') ctx.exempt.add(id);
+      const seg = { userId: t.user_id_str, following: !!u?.following, text: cleanText(t.full_text || t.text) };
+      if (segmentMuted(seg, ctx.m, ctx.selfId)) muted.add(id);
     }
     // quotes / retweets inherit
     for (const id in tweets) {
@@ -270,7 +264,7 @@
   // Mutates obj in place. Returns number of removed timeline entries/items.
   function filterPayload(obj, m, opts = {}) {
     if (!obj || typeof obj !== 'object' || isEmpty(m)) return 0;
-    const ctx = { m, selfId: opts.selfId || null, exempt: opts.exempt || new Set(), removedItems: 0 };
+    const ctx = { m, selfId: opts.selfId || null, removedItems: 0 };
     let removed = filterLegacyV2(obj, ctx) + filterTypeahead(obj, ctx);
     const seen = new Set();
     const visit = (o, depth) => {

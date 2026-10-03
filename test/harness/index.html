@@ -8,13 +8,13 @@
 <script src="core.js"></script>
 <script src="main.js"></script>
 <body>
+<!-- Markup shaped like X's, containing a muted word: tweetmuff must leave the DOM alone. -->
 <div id="tl">
   <div data-testid="cellInnerDiv" id="c1"><article data-testid="tweet"><div data-testid="tweetText">a spoiler here</div></article></div>
-  <div data-testid="cellInnerDiv" id="c2"><article data-testid="tweet"><div data-testid="tweetText">plain post <a href="https://t.co/spoiler1">t.co/spoiler1</a></div></article></div>
 </div>
 <pre id="out"></pre>
 <script>
-  // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, dom == [true, false, true]
+  // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, domUntouched == true
   window.results = {};
   document.addEventListener('tweetmuff:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
   fetch('expected.json').then((r) => r.json()).then((e) => { results.expected = e; });
@@ -33,13 +33,17 @@
   x.send();
   fetch(TL).then((r) => r.json()).then((d) => { results.fetch = count(d); });
   const m = new XMLHttpRequest(); m.open('GET', '/i/api/1.1/mutes/keywords/list.json'); m.send();
+  const headChildren = document.head.children.length;
   setTimeout(() => {
-    const c3 = document.createElement('div'); c3.dataset.testid = 'cellInnerDiv'; c3.id = 'c3';
-    c3.innerHTML = '<article data-testid="tweet"><div data-testid="tweetText">最終回のネタバレ</div></article>';
-    document.getElementById('tl').append(c3);
+    const c2 = document.createElement('div'); c2.dataset.testid = 'cellInnerDiv'; c2.id = 'c2';
+    c2.innerHTML = '<article data-testid="tweet"><div data-testid="tweetText">最終回のネタバレ</div></article>';
+    document.getElementById('tl').append(c2);
   }, 50);
   setTimeout(() => {
-    results.dom = ['c1', 'c2', 'c3'].map((id) => document.getElementById(id).hasAttribute('data-tweetmuff-hidden'));
+    const cells = ['c1', 'c2'].map((id) => document.getElementById(id));
+    // No hidden cells, no added attributes, no injected <style> or other head elements.
+    results.domUntouched = cells.every((c) => getComputedStyle(c).display !== 'none' && c.attributes.length === 2)
+      && !document.querySelector('style') && document.head.children.length === headChildren;
     document.getElementById('out').textContent = JSON.stringify(results, null, 1);
   }, 600);
 </script>
