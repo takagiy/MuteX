@@ -88,8 +88,8 @@ Chrome Web Store policy requires disclosing data that is handled locally, even i
 
 | Category | Collected? | What and why |
 | --- | --- | --- |
-| Personally identifiable information | **Yes** | Reads the signed-in user's numeric X account ID from X's `twid` cookie, only to avoid hiding the user's own posts. Never stored or transmitted. |
-| Website content | **Yes** | Reads and modifies X's timeline API responses in the page to remove posts that contain muted words. Reads the user's muted-word list from X's settings response and stores it locally. |
+| Personally identifiable information | No | |
+| Website content | **Yes** | Reads and modifies X's timeline API responses in the page to remove posts that contain muted words. Reads the user's muted-word list from X's settings response and stores it locally. Reads the numeric account ID from X's `twid` cookie, only to avoid hiding the user's own posts; it is never stored or transmitted. |
 | Health information | No | |
 | Financial and payment information | No | |
 | Authentication information | No | Auth cookies and tokens are not used. |
