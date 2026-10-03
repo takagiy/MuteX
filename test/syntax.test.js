@@ -6,7 +6,7 @@ import path from 'node:path';
 const root = path.join(import.meta.dir, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 
-const pages = [manifest.action?.default_popup].filter(Boolean);
+const pages = [manifest.action?.default_popup, manifest.options_ui?.page].filter(Boolean);
 const pageScripts = pages.flatMap((page) => {
   const html = fs.readFileSync(path.join(root, page), 'utf8');
   return [...html.matchAll(/<script[^>]*\ssrc="([^"]+)"/g)].map((m) => path.posix.join(path.posix.dirname(page), m[1]));
@@ -14,7 +14,7 @@ const pageScripts = pages.flatMap((page) => {
 const scripts = [...new Set([...manifest.content_scripts.flatMap((c) => c.js || []), ...pageScripts])];
 
 test('found scripts to check', () => {
-  expect(scripts).toContain('popup/popup.js');
+  expect(scripts).toEqual(expect.arrayContaining(['pages/common.js', 'pages/popup.js', 'pages/options.js']));
 });
 
 for (const f of scripts) {

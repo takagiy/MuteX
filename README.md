@@ -15,7 +15,7 @@ tweetmuff isn't on the Chrome Web Store. Install it as an unpacked extension. Th
 2. Unzip it into a folder you will keep. Chrome loads the extension from that folder every time it starts.
 3. Open `chrome://extensions` and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and select the unzipped folder (the one that contains `manifest.json`).
-5. Click the tweetmuff icon, then **Open X mute settings**. When X loads that page, your muted words are imported. You can also add extra words in the popup.
+5. Click the tweetmuff icon, then **Open X mute settings**. When X loads that page, your muted words are imported. The popup shows only how many words are active. To see or edit the words themselves, click **Edit muted words**, which opens the settings page.
 
 ### Update
 
@@ -36,7 +36,7 @@ Load the cloned folder with **Load unpacked** as above.
 | `src/core.js` | MAIN | Keyword matching and timeline filtering. Pure logic, also used by the tests. |
 | `src/main.js` | MAIN | Hooks `XMLHttpRequest` / `fetch` at `document_start`, filters timeline responses, imports X's mute list, and runs a DOM safety net. |
 | `src/bridge.js` | ISOLATED | Syncs `chrome.storage` with the page hook. Rules are mirrored to x.com's `localStorage` so they are available at page start. |
-| `popup/` | – | Enable toggle, sync status, extra local words. |
+| `pages/` | – | Popup (enable toggle, word counts) and the options page (the word lists, extra local words). The popup never shows the words themselves. |
 
 ### Filtering
 
@@ -61,7 +61,7 @@ Load the cloned folder with **Load unpacked** as above.
 - tweetmuff never sends requests to X's API itself. It only reads responses that X's own web app has already requested.
 - Whenever X fetches your mute list (`/i/api/1.1/mutes/keywords/list.json`, for example on Settings › Muted words), tweetmuff reads that response and saves the list.
 - To refresh after editing muted words on X or in the app, open the muted words settings page again. The popup's **Open X mute settings** button does this.
-- X's per-word "exclude people you follow" option is respected. The popup has a switch to apply all words to followed accounts as well.
+- X's per-word "exclude people you follow" option is respected. The popup and the settings page have a switch to apply all words to followed accounts as well.
 
 ## Privacy
 
