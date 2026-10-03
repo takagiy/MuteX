@@ -20,13 +20,17 @@
     await chrome.storage.local.set({ state: { ...s, ...patch } });
   }
 
-  getState().then(push);
+  // Storage calls start failing when the extension is reloaded or updated under an open tab; that tab simply keeps
+  // its last rules until it is reloaded.
+  getState().then(push).catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.state) push({ ...DEFAULT, ...changes.state.newValue });
   });
 
   document.addEventListener('tweetmuff:imported', (e) => {
-    const d = JSON.parse(e.detail);
-    update({ imported: d.rules, lastSync: d.at });
+    let d;
+    try { d = JSON.parse(e.detail); } catch { return; }
+    if (!Array.isArray(d?.rules)) return;
+    update({ imported: d.rules, lastSync: Number(d.at) || Date.now() }).catch(() => {});
   });
 })();

@@ -14,7 +14,8 @@
 </div>
 <pre id="out"></pre>
 <script>
-  // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, domUntouched == true
+  // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, domUntouched == true,
+  // legacy == expected.legacy, cleanFetchUntouched == true
   window.results = {};
   document.addEventListener('tweetmuff:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
   fetch('expected.json').then((r) => r.json()).then((e) => { results.expected = e; });
@@ -32,6 +33,12 @@
   };
   x.send();
   fetch(TL).then((r) => r.json()).then((d) => { results.fetch = count(d); });
+  // A response tweetmuff leaves alone is X's original Response object (type "basic"), not a rebuilt one.
+  fetch('/i/api/graphql/q/Clean.json').then((r) => { results.cleanFetchUntouched = r.type === 'basic' && !r.bodyUsed; });
+  const lx = new XMLHttpRequest();
+  lx.open('GET', '/i/api/2/timeline/odd.json');
+  lx.onload = () => { results.legacy = JSON.parse(lx.responseText).timeline.instructions[0].addEntries.entries.map((e) => e.entryId); };
+  lx.send();
   const m = new XMLHttpRequest(); m.open('GET', '/i/api/1.1/mutes/keywords/list.json'); m.send();
   const headChildren = document.head.children.length;
   setTimeout(() => {
