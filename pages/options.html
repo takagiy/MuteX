@@ -16,6 +16,24 @@
       </label>
     </header>
 
+    <section id="status">
+      <h2>Status</h2>
+      <p id="statusOk" class="status-line ok" hidden>Everything runs normally.</p>
+      <div id="statusProblems" hidden>
+        <p class="status-line warn">Some features ran into problems</p>
+        <p class="muted small">tweetmuff left the affected parts of X as they were, so some muted posts may have shown up there. Reporting it helps get it fixed.</p>
+        <ul id="problemList"></ul>
+        <div class="actions">
+          <button id="copyReport">Copy details</button>
+          <a class="button secondary" href="https://github.com/takagiy/tweetmuff/issues/new" target="_blank" rel="noopener">Report on GitHub</a>
+          <button id="clearProblems" class="secondary">Clear</button>
+          <span id="copied" class="muted small" hidden>Copied</span>
+        </div>
+        <p class="muted small">Copied details leave out account and post IDs, tokens, links, and quoted text, so you can post them publicly.</p>
+        <textarea id="reportFallback" rows="6" readonly hidden></textarea>
+      </div>
+    </section>
+
     <section>
       <h2>Muted words from X</h2>
       <p id="syncStatus" class="muted">Not synced</p>

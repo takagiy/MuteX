@@ -68,7 +68,7 @@ The dashboard asks for a justification for each permission and for host access.
 `storage`:
 
 ```
-Stores the user's settings and muted-word list (imported from the user's own X mute settings, plus any words added on the settings page) locally on the device, so the filter keeps working across browser sessions.
+Stores the user's settings and muted-word list (imported from the user's own X mute settings, plus any words added on the settings page) locally on the device, so the filter keeps working across browser sessions. Also keeps a short, redacted log of problems the filter ran into, shown in the settings page's Status section.
 ```
 
 Host access (content scripts on `https://x.com/*` and `https://twitter.com/*`):

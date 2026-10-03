@@ -11,14 +11,20 @@
 
   const STATE_KEY = 'tweetmuff:state';
   const MUTE_LIST_PATH = '/i/api/1.1/mutes/keywords/list.json';
+  const IMPORT = { feature: 'Importing muted words from X', source: 'mutes/keywords/list' };
 
-  // One console note per distinct problem, so a format change on X's side doesn't flood the console.
+  // Each distinct problem is reported once per page: a console note, plus a redacted record the bridge keeps for
+  // the options page's Status section. where = { feature, source }.
   const reported = new Set();
-  function report(e) {
-    const key = String(e?.message || e);
-    if (reported.has(key)) return;
-    reported.add(key);
-    console.warn('[tweetmuff] Left part of X\'s data unfiltered because it looked unexpected:', e);
+  function report(e, where = {}) {
+    try {
+      const problem = core.toProblem(e, where.feature || 'Other', where.source);
+      const key = problem.feature + '\n' + problem.message;
+      if (reported.has(key)) return;
+      reported.add(key);
+      console.warn(`[tweetmuff] ${problem.feature}: left part of X's data unfiltered because it looked unexpected.`, e);
+      emit('tweetmuff:problem', problem);
+    } catch {}
   }
 
   // ---------- state (written by the isolated-world bridge into localStorage) ----------
@@ -28,7 +34,7 @@
     try {
       matcher = core.compile(JSON.parse(localStorage.getItem(STATE_KEY) || 'null'));
     } catch (e) {
-      report(e);
+      report(e, { feature: 'Settings' });
     }
   }
 
@@ -48,22 +54,23 @@
       || /api\.(x|twitter)\.com\/(graphql|2)\//.test(url);
   }
 
-  function filterObj(obj) {
+  function filterObj(obj, url) {
     if (core.isEmpty(matcher)) return 0;
+    const onError = (e) => report(e, core.featureFor(url));
     try {
-      return core.filterPayload(obj, matcher, { selfId: selfId(), onError: report });
+      return core.filterPayload(obj, matcher, { selfId: selfId(), onError });
     } catch (e) {
-      report(e);
+      onError(e);
       return 0;
     }
   }
 
   // Returns the filtered JSON text, or the original text whenever it isn't JSON or nothing was removed.
-  function filterText(text) {
+  function filterText(text, url) {
     if (core.isEmpty(matcher) || typeof text !== 'string' || !text || text[0] !== '{') return text;
     let obj;
     try { obj = JSON.parse(text); } catch { return text; }
-    return filterObj(obj) ? JSON.stringify(obj) : text;
+    return filterObj(obj, url) ? JSON.stringify(obj) : text;
   }
 
   // ---------- XMLHttpRequest ----------
@@ -79,11 +86,14 @@
       this[META] = { url: u, timeline: isTimelineUrl(u), raw: undefined, out: undefined };
       if (u.includes(MUTE_LIST_PATH)) {
         this.addEventListener('load', () => {
-          try { importFromJson(JSON.parse(textDesc.get.call(this))); } catch {}
+          if (this.status !== 200) return;
+          let json;
+          try { json = JSON.parse(textDesc.get.call(this)); } catch { return; }
+          importFromJson(json);
         });
       }
     } catch (e) {
-      report(e);
+      report(e, { feature: 'Network hook', source: 'XMLHttpRequest' });
     }
     return origOpen.apply(this, arguments);
   };
@@ -95,17 +105,17 @@
       if (meta.raw === raw && meta.out !== undefined) return meta.out;
       let out = raw;
       if (typeof raw === 'string') {
-        out = filterText(raw);
+        out = filterText(raw, meta.url);
       } else if (raw && Object.getPrototypeOf(raw) === Object.prototype) {
         // responseType 'json': filter a copy, so X's own object is never left half-edited.
         const copy = structuredClone(raw);
-        if (filterObj(copy)) out = copy;
+        if (filterObj(copy, meta.url)) out = copy;
       }
       meta.raw = raw;
       meta.out = out;
       return out;
     } catch (e) {
-      report(e);
+      report(e, core.featureFor(xhr[META]?.url));
       return raw;
     }
   }
@@ -123,20 +133,21 @@
   const origFetch = window.fetch;
   window.fetch = async function (input) {
     const res = await origFetch.apply(this, arguments);
+    let url = '';
     try {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
-      if (url.includes(MUTE_LIST_PATH)) res.clone().json().then(importFromJson).catch(() => {});
+      url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
+      if (url.includes(MUTE_LIST_PATH) && res.ok) res.clone().json().then(importFromJson, () => {});
       if (!isTimelineUrl(url) || core.isEmpty(matcher) || !res.ok) return res;
       if (!(res.headers.get('content-type') || '').includes('json')) return res;
       // Read a clone, so the original response is still intact to hand back if anything goes wrong.
       const text = await res.clone().text();
-      const out = filterText(text);
+      const out = filterText(text, url);
       if (out === text) return res;
       const r2 = new Response(out, { status: res.status, statusText: res.statusText, headers: res.headers });
       Object.defineProperty(r2, 'url', { value: res.url });
       return r2;
     } catch (e) {
-      report(e);
+      report(e, core.featureFor(url));
       return res;
     }
   };
@@ -147,8 +158,13 @@
   }
 
   function importFromJson(json) {
-    const rules = core.fromXMuteList(json);
-    if (rules) emit('tweetmuff:imported', { rules, at: Date.now() });
+    try {
+      const rules = core.fromXMuteList(json);
+      if (rules) emit('tweetmuff:imported', { rules, at: Date.now() });
+      else report(new Error("X's muted-words response had an unexpected format, so the saved list was kept"), IMPORT);
+    } catch (e) {
+      report(e, IMPORT);
+    }
   }
 
   // ---------- init ----------
