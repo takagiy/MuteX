@@ -63,12 +63,20 @@ Load the cloned folder with **Load unpacked** as above.
 - To refresh after editing muted words on X or in the app, open the muted words settings page again. The popup's **Open X mute settings** button does this.
 - X's per-word "exclude people you follow" option is respected. The popup has a switch to apply all words to followed accounts as well.
 
+## Privacy
+
+tweetmuff sends nothing anywhere. Your muted words and settings stay on your device. See [PRIVACY.md](PRIVACY.md).
+
 ## Development
 
 ```bash
 bun test
 bun scripts/check-manifest.js
 ```
+
+### Chrome Web Store
+
+[docs/store-listing.md](docs/store-listing.md) has the text for every Developer Dashboard field: listing, permission justifications, data usage disclosure, and privacy policy URL. It also has the list of assets to prepare and the store release checklist. The zip to upload is the one the release workflow attaches to each GitHub release.
 
 ### CI / releases
 
