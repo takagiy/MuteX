@@ -1,4 +1,4 @@
-# <img src="icons/128.png" width="40" height="40" alt="" align="top"> tweetmuff
+# <img src="icons/icon.svg" width="40" height="40" alt="" align="top"> tweetmuff
 
 [![CI](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml/badge.svg)](https://github.com/takagiy/tweetmuff/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/takagiy/tweetmuff)](https://github.com/takagiy/tweetmuff/releases/latest)
