@@ -73,14 +73,8 @@ Stores the user's settings and muted-word list (imported from the user's own X m
 
 Host access (content scripts on `https://x.com/*`):
 
-Reviewers check that host access is as narrow as possible, so this explains why the single pattern `https://x.com/*` is the minimum.
-
 ```
-tweetmuff's single purpose is filtering posts on X, so it asks for access to X's own site and nothing else. There is no host_permissions entry: access comes only from the content scripts' match pattern, the scripts run in the top frame only, and storage is the only permission requested (no tabs, scripting, webRequest, or cookies permission).
-
-The pattern covers every path on x.com because X is a single-page app. The home timeline, replies, search, profiles, lists, bookmarks, notifications, and Explore are all routes of that one app, and moving between them doesn't load a new page. People also open any of these routes directly from links. To filter a timeline, the scripts have to be running when X's app starts on whichever page loads first, so a narrower path pattern would leave posts unfiltered. twitter.com isn't included because it redirects to x.com on the server, so a script there would never run.
-
-On x.com, the scripts only remove posts containing the user's muted words from timeline data X's app has already received, and read the user's muted-word list when X's own settings page loads it. They never send requests to X or to any other server.
+tweetmuff filters posts on X only, so its content scripts match https://x.com/* and nothing else (no host_permissions, top frame only). Every path is needed because X is a single-page app: timelines, search, and profiles change without a page load, so the script must already run on whichever page opens first. It only filters data X has already loaded and sends no requests.
 ```
 
 Use of remote code:
