@@ -4,6 +4,8 @@
   --sub: #536471;
   --line: #eff3f4;
   --chip: #b9c6cd;
+  --ok: #00ba7c;
+  --warn: #f4900c;
   --accent: #1d9bf0;
   color-scheme: light dark;
 }
@@ -11,6 +13,7 @@
   :root { --bg: #000000; --fg: #e7e9ea; --sub: #71767b; --line: #2f3336; --chip: #536471; }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* or a display rule on the element would un-hide it */
 body {
   margin: 0;
   background: var(--bg);
@@ -31,6 +34,8 @@ button {
   background: var(--fg); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer;
 }
 button.secondary { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+a.button { display: inline-block; border-radius: 999px; padding: 6px 14px; font-weight: 600; text-decoration: none; }
+a.button.secondary { color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
 textarea {
   width: 100%; margin-bottom: 8px; padding: 6px 8px;
   border: 1px solid var(--line); border-radius: 6px;

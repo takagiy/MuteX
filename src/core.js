@@ -333,8 +333,65 @@
     return list.length && !rules.length ? null : rules;
   }
 
+  // --- problem reports (shown on the options page and meant to be pasteable into a public GitHub issue) ---
+
+  // Removes anything that could identify the user or be abused once a report is posted publicly.
+  function redact(text) {
+    return String(text ?? '')
+      .replace(/chrome-extension:\/\/[a-p]{32}\//g, '') // extension id
+      .replace(/(Invalid regular expression: )\/.*\/([a-z]*):/g, '$1/…/$2:') // regex source = the user's muted words
+      .replace(/https?:\/\/[^\s'"`)]+/g, (u) => {
+        try {
+          const url = new URL(u);
+          // Keep only API endpoint paths; page paths can contain user names.
+          return url.origin + (/(^|\.)(x|twitter)\.com$/.test(url.hostname) && !url.pathname.startsWith('/i/api/') ? '/…' : url.pathname);
+        } catch {
+          return '<url>';
+        }
+      })
+      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>')
+      .replace(/([A-Za-z]:\\Users\\|\/Users\/|\/home\/)[^\\/\s]+/g, '$1<user>')
+      .replace(/(?<!\w)(["'`])(.*?)\1(?!\w)/g, (m, q, s) => (/^[A-Za-z_$][\w$]{0,39}$/.test(s) ? m : `${q}…${q}`)) // quoted data; identifiers stay
+      .replace(/\b[A-Za-z0-9%_-]{32,}\b/g, '<token>')
+      .replace(/\b\d{6,}\b/g, '<id>')
+      .slice(0, 300);
+  }
+
+  // Which feature a request belongs to, named for people.
+  const FEATURES = [
+    [/^(HomeTimeline|HomeLatestTimeline)$/, 'Home timeline'],
+    [/^TweetDetail$/, 'Replies and "Discover more"'],
+    [/^SearchTimeline$/, 'Search results'],
+    [/^(User\w*|Likes)$/, 'Profiles'],
+    [/^(ExplorePage|ExploreSidebar|GenericTimelineById|\w*Trends?\w*)$/, 'Explore and trends'],
+    [/^Notifications?\w*$/, 'Notifications'],
+    [/^Bookmarks?\w*$/, 'Bookmarks'],
+    [/^List\w*$/, 'Lists'],
+  ];
+  function featureFor(url) {
+    const path = String(url || '').split(/[?#]/)[0];
+    if (/\/search\/typeahead\.json$/.test(path)) return { feature: 'Search suggestions', source: 'typeahead' };
+    const op = (path.match(/\/graphql\/[^/]+\/(\w+)$/) || [])[1];
+    if (op) return { feature: (FEATURES.find(([re]) => re.test(op)) || [, 'Other timelines'])[1], source: op };
+    if (/\/2\/notifications\//.test(path)) return { feature: 'Notifications', source: 'notifications' };
+    return { feature: 'Other timelines', source: redact((path.match(/\/i\/api\/(.+)$/) || [, 'unknown'])[1]) };
+  }
+
+  // A redacted, compact description of an error: what failed, the message, and where in tweetmuff's own code.
+  function toProblem(error, feature, source) {
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const stack = [];
+    for (const line of String(error?.stack || '').split('\n')) {
+      const m = line.match(/at (?:([\w$.]+) )?\(?.*?((?:core|main|bridge)\.js:\d+:\d+)\)?\s*$/);
+      if (m) stack.push(`${m[1] ? m[1] + ' ' : ''}(src/${m[2]})`);
+      if (stack.length === 6) break;
+    }
+    return { feature: redact(feature).slice(0, 80), source: redact(source || '').slice(0, 80), message: redact(message), stack };
+  }
+
   const api = {
     normalize, keywordSource, normalizeState, compile, isEmpty, judgeText, cleanText, tweetSegments, filterPayload, fromXMuteList,
+    redact, featureFor, toProblem,
   };
   root.TweetmuffCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

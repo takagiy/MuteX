@@ -14,6 +14,7 @@ tweetmuff only works on x.com (and twitter.com). On those pages it handles the f
 - **Timeline content.** It reads the timeline data that X's web app has already received, such as posts, replies, search results, trends, and search suggestions. It removes items that contain your muted words before they are displayed. The content is not stored or sent anywhere.
 - **Your muted words.** When X's web app loads your muted-word list (for example on Settings › Muted words), tweetmuff reads that response and saves the words and their options. It also saves the extra words you add on the settings page and your settings (on/off, "apply to accounts you follow"). These are stored in the extension's local storage (`chrome.storage.local`). A copy is also kept in x.com's `localStorage`, so the filter is ready as soon as the page starts loading.
 - **Your X account ID.** It reads your numeric account ID from X's `twid` cookie, only so that your own posts are never hidden. The ID is not stored.
+- **Problem log.** If part of X's data doesn't look the way tweetmuff expects, tweetmuff leaves that part unfiltered and saves a short note about it in `chrome.storage.local`: which feature was affected, the error message, and where in tweetmuff's code it happened. Account and post IDs, tokens, links, and quoted text are removed before the note is saved. You can see these notes in the Status section of the settings page, copy them to report a problem, or clear them. They are never sent anywhere automatically, and notes from older versions are discarded.
 
 ## Data the extension transmits
 
@@ -34,7 +35,7 @@ tweetmuff does not load or execute any remote code. All code is shipped inside t
 
 ## Deleting your data
 
-Removing the extension deletes everything in its local storage. The copy in x.com's `localStorage` (key `tweetmuff:state`) is removed when you clear site data for x.com.
+Removing the extension deletes everything in its local storage, including the problem log. The **Clear** button in the settings page's Status section deletes the problem log on its own. The copy in x.com's `localStorage` (key `tweetmuff:state`) is removed when you clear site data for x.com.
 
 ## Changes to this policy
 

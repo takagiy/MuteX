@@ -69,9 +69,12 @@ function serveRepo() {
 // Runs in the page before its own scripts: the extension pages only need these chrome.* calls.
 function stubChrome(state) {
   window.chrome = {
-    storage: { local: { get: async () => ({ state }), set: async () => {} }, onChanged: { addListener() {} } },
+    storage: {
+      local: { get: async (key) => (key === 'problems' ? { problems: [] } : { state }), set: async () => {}, remove: async () => {} },
+      onChanged: { addListener() {} },
+    },
     tabs: { create() {} },
-    runtime: { openOptionsPage() {} },
+    runtime: { openOptionsPage() {}, getManifest: () => ({ version: '0.0.0' }) },
   };
 }
 

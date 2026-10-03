@@ -19,7 +19,7 @@
     },
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
-      "js": ["src/bridge.js"],
+      "js": ["src/core.js", "src/bridge.js"],
       "run_at": "document_start"
     }
   ]
