@@ -1,2 +1,4 @@
 test/harness/*
 !test/harness/index.html
+node_modules/
+store/.cache/

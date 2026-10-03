@@ -3,11 +3,12 @@
   --fg: #0f1419;
   --sub: #536471;
   --line: #eff3f4;
+  --chip: #b9c6cd;
   --accent: #1d9bf0;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #000000; --fg: #e7e9ea; --sub: #71767b; --line: #2f3336; }
+  :root { --bg: #000000; --fg: #e7e9ea; --sub: #71767b; --line: #2f3336; --chip: #536471; }
 }
 * { box-sizing: border-box; }
 body {

@@ -76,6 +76,16 @@ bun scripts/check-manifest.js
 
 ### Chrome Web Store
 
+The store screenshots in `store/screenshots/` are built from `store/slides.md` (a [Marp](https://marp.app/) deck) and live captures of the popup and the options page, shown with made-up sample words. To rebuild them, run the following (Chrome must be installed; set `CHROME_PATH` if it isn't found):
+
+```bash
+bun install
+```
+
+```bash
+bun run store:screenshots
+```
+
 [docs/store-listing.md](docs/store-listing.md) has the text for every Developer Dashboard field: listing, permission justifications, data usage disclosure, and privacy policy URL. It also has the list of assets to prepare and the store release checklist. The zip to upload is the one the release workflow attaches to each GitHub release.
 
 ### CI / releases

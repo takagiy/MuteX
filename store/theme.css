@@ -1,0 +1,162 @@
+/* @theme tweetmuff */
+/* @size store 1280px 800px */
+
+/* Chrome Web Store screenshots: 1280x800, full bleed, shown downscaled to 640x400, so text is set large. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+
+section {
+  --ink: #0f1419;
+  --sub: #4b5a66;
+  --blue: #1da1f2;
+  --sage: #bfd2c9;
+  --sage-light: #d4e3db;
+
+  width: 1280px;
+  height: 800px;
+  box-sizing: border-box;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+  background: #f6f9f7;
+}
+
+/* Sage arc behind the screenshot (colors from the icon) */
+section::before {
+  content: '';
+  position: absolute;
+  left: 500px;
+  top: 50%;
+  width: 1240px;
+  height: 1240px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 40%, var(--sage-light) 0%, var(--sage) 70%);
+}
+
+.brand {
+  position: absolute;
+  left: 64px;
+  top: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.brand img { width: 56px; height: 56px; display: block; }
+
+.copy {
+  position: absolute;
+  left: 64px;
+  top: 172px;
+  width: 440px;
+}
+.copy h1 {
+  margin: 0 0 36px;
+  font-size: 46px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.copy ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 24px; }
+.copy li {
+  position: relative;
+  padding-left: 42px;
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--sub);
+}
+.copy li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+.copy li strong { display: block; margin-bottom: 2px; font-size: 24px; font-weight: 700; color: var(--ink); }
+
+/* Right-hand stage */
+.stage {
+  position: absolute;
+  left: 560px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.shadow { box-shadow: 0 32px 72px rgba(15, 20, 25, 0.22), 0 4px 14px rgba(15, 20, 25, 0.08); }
+
+/* Popup slide: a slice of the browser toolbar with the popup hanging from the extension button */
+.toolbar-scene { width: 600px; display: flex; flex-direction: column; align-items: flex-end; }
+.toolbar {
+  width: 100%;
+  height: 60px;
+  box-sizing: border-box;
+  padding: 0 12px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 18px;
+  background: #fff;
+}
+.toolbar .nav { display: flex; gap: 10px; }
+.toolbar .nav i { width: 12px; height: 12px; border-radius: 50%; background: #c9d2d7; }
+.omnibox {
+  flex: 1;
+  height: 38px;
+  border-radius: 19px;
+  background: #eef2f4;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  font-size: 17px;
+  color: #536471;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.toolbar .action {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e3ecf1;
+  display: grid;
+  place-items: center;
+}
+.toolbar .action img { width: 28px; height: 28px; }
+.popup { width: 480px; margin: 12px 0 0; border-radius: 14px; display: block; }
+
+/* Options slide: a browser window showing the options page */
+.window {
+  width: 644px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  align-self: flex-start;
+  margin-top: 112px;
+}
+.window .tabs { height: 46px; background: #dfe7e3; display: flex; align-items: flex-end; padding: 0 16px; }
+.window .tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 12px 12px 0 0;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+.window .tab img { width: 20px; height: 20px; }
+.window .bar { padding: 8px 16px 10px; }
+.window .omnibox { height: 36px; font-size: 15px; }
+.window .omnibox b { color: var(--ink); font-weight: 600; margin-right: 10px; }
+.window .page { display: block; width: 644px; }

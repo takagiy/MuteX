@@ -1,0 +1,13 @@
+{
+  "name": "tweetmuff",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "bun test",
+    "store:screenshots": "bun store/build.js"
+  },
+  "devDependencies": {
+    "@marp-team/marp-core": "^4.4.0",
+    "puppeteer-core": "^25.12.0"
+  }
+}
