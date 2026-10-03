@@ -9,7 +9,7 @@ tweetmuff does not transmit, sell, or share any user data. Everything it handles
 
 ## Data the extension handles
 
-tweetmuff only works on x.com (and twitter.com). On those pages it handles the following, all locally in your browser:
+tweetmuff only works on x.com. There it handles the following, all locally in your browser:
 
 - **Timeline content.** It reads the timeline data that X's web app has already received, such as posts, replies, search results, trends, and search suggestions. It removes items that contain your muted words before they are displayed. The content is not stored or sent anywhere.
 - **Your muted words.** When X's web app loads your muted-word list (for example on Settings › Muted words), tweetmuff reads that response and saves the words and their options. It also saves the extra words you add on the settings page and your settings (on/off, "apply to accounts you follow"). These are stored in the extension's local storage (`chrome.storage.local`). A copy is also kept in x.com's `localStorage`, so the filter is ready as soon as the page starts loading.
@@ -23,7 +23,7 @@ tweetmuff only works on x.com (and twitter.com). On those pages it handles the f
 ## Permissions used
 
 - `storage`: saves your muted words and settings on your device.
-- Content scripts on `https://x.com/*` and `https://twitter.com/*`: filter posts on those pages.
+- Content scripts on `https://x.com/*`: filter posts on X's pages.
 
 ## Third parties
 

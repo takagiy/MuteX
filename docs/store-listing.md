@@ -68,13 +68,19 @@ The dashboard asks for a justification for each permission and for host access.
 `storage`:
 
 ```
-Stores the user's settings and muted-word list (imported from the user's own X mute settings, plus any words added on the settings page) locally on the device, so the filter keeps working across browser sessions. Also keeps a short log of problems the filter ran into, as fixed codes only (affected feature, step, error type, count, date) with no page content, shown in the settings page's Status section.
+Stores the user's settings and muted-word list (imported from the user's own X mute settings, plus any words added on the settings page) locally on the device, so the filter keeps working across browser sessions. It also keeps a short log of problems the filter ran into, recorded only as fixed codes (affected feature, step, error type, extension version, count, and date). The log contains no page content or any other data, and is shown in the Status section of the settings page.
 ```
 
-Host access (content scripts on `https://x.com/*` and `https://twitter.com/*`):
+Host access (content scripts on `https://x.com/*`):
+
+Reviewers check that host access is as narrow as possible, so this explains why the single pattern `https://x.com/*` is the minimum.
 
 ```
-The single purpose of the extension is filtering posts on X. The content scripts run only on x.com (and twitter.com, which redirects to it). They remove posts containing the user's muted words from the timeline data that X's web app has already loaded, before it is displayed. They also read the user's muted-word list when X's settings page loads it. No requests are sent to any server.
+tweetmuff's single purpose is filtering posts on X, so it asks for access to X's own site and nothing else. There is no host_permissions entry: access comes only from the content scripts' match pattern, the scripts run in the top frame only, and storage is the only permission requested (no tabs, scripting, webRequest, or cookies permission).
+
+The pattern covers every path on x.com because X is a single-page app. The home timeline, replies, search, profiles, lists, bookmarks, notifications, and Explore are all routes of that one app, and moving between them doesn't load a new page. People also open any of these routes directly from links. To filter a timeline, the scripts have to be running when X's app starts on whichever page loads first, so a narrower path pattern would leave posts unfiltered. twitter.com isn't included because it redirects to x.com on the server, so a script there would never run.
+
+On x.com, the scripts only remove posts containing the user's muted words from timeline data X's app has already received, and read the user's muted-word list when X's own settings page loads it. They never send requests to X or to any other server.
 ```
 
 Use of remote code:
