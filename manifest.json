@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "tweetmuff",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "minimum_chrome_version": "111",
   "homepage_url": "https://github.com/takagiy/tweetmuff",
   "description": "Hides X (Twitter) posts that contain your muted words, without a trace. Uses your existing X mute list.",
