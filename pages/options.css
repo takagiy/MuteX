@@ -12,5 +12,4 @@ section { padding-top: 16px; margin-top: 16px; }
 #problemList { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
 #problemList li { border-left: 3px solid var(--warn); padding: 4px 0 4px 10px; }
 #problemList .feature { font-weight: 600; }
-#problemList code { display: block; margin: 2px 0; font-size: 12px; overflow-wrap: anywhere; }
 #reportFallback { margin-top: 8px; }

@@ -25,21 +25,41 @@ $('saveLocal').addEventListener('click', async () => {
   setTimeout(() => ($('saved').hidden = true), 1500);
 });
 
-// ---------- Status: problems tweetmuff ran into on X (recorded by the bridge, already redacted) ----------
+// ---------- Status: problems tweetmuff ran into on X ----------
+// The bridge stores only fixed codes ({ feature, step, kind }); these turn them into words.
 
 const VERSION = chrome.runtime.getManifest().version;
+const FEATURE_NAMES = {
+  home: 'Home timeline',
+  replies: 'Replies and "Discover more"',
+  search: 'Search results',
+  suggestions: 'Search suggestions',
+  profiles: 'Profiles',
+  explore: 'Explore and trends',
+  notifications: 'Notifications',
+  bookmarks: 'Bookmarks',
+  lists: 'Lists',
+  other: 'Other timelines',
+  settings: 'Settings',
+  import: 'Importing muted words from X',
+  network: "Watching X's requests",
+};
+const STEP_TEXT = {
+  entries: "Couldn't read some items in X's response; they were shown unfiltered.",
+  legacy: "Couldn't read some items in X's response; they were shown unfiltered.",
+  suggestions: "Couldn't read some search suggestions; they were shown unfiltered.",
+  response: "Couldn't process X's response; it was shown unfiltered.",
+  settings: "Couldn't load the saved settings.",
+  format: "X's muted-words list came in an unknown format, so the saved list was kept.",
+  import: "Couldn't read X's muted-words list, so the saved list was kept.",
+  hook: "Couldn't watch one of X's requests; it was left as it was.",
+};
 let problems = [];
 
-// Only this version's records, redacted once more before they're shown or copied.
 function currentProblems(stored) {
-  const r = TweetmuffCore.redact;
   return (Array.isArray(stored) ? stored : [])
-    .filter((p) => p && p.version === VERSION && typeof p.message === 'string')
-    .map((p) => ({
-      feature: r(p.feature), source: r(p.source), message: r(p.message),
-      stack: (Array.isArray(p.stack) ? p.stack : []).map(r),
-      count: Number(p.count) || 1, lastSeen: Number(p.lastSeen) || 0,
-    }));
+    .filter((p) => p && p.version === VERSION && TweetmuffCore.isProblem(p))
+    .map((p) => ({ feature: p.feature, step: p.step, kind: p.kind, count: Number(p.count) || 1, lastSeen: Number(p.lastSeen) || 0 }));
 }
 
 function fmtDate(t) {
@@ -54,13 +74,13 @@ function renderProblems(stored) {
     const li = document.createElement('li');
     const feature = document.createElement('div');
     feature.className = 'feature';
-    feature.textContent = p.feature;
-    const message = document.createElement('code');
-    message.textContent = p.message;
+    feature.textContent = FEATURE_NAMES[p.feature];
+    const what = document.createElement('div');
+    what.textContent = `${STEP_TEXT[p.step]} (${p.kind})`;
     const seen = document.createElement('div');
     seen.className = 'muted small';
     seen.textContent = `Seen ${p.count === 1 ? 'once' : `${p.count} times`}, last on ${fmtDate(p.lastSeen)}`;
-    li.append(feature, message, seen);
+    li.append(feature, what, seen);
     return li;
   }));
 }
@@ -70,12 +90,11 @@ function reportText() {
   const platform = navigator.userAgentData?.platform;
   const lines = [`tweetmuff ${VERSION} problem report`, `Browser: Chrome ${browser || '?'}${platform ? ` on ${platform}` : ''}`, ''];
   problems.forEach((p, i) => {
-    lines.push(`${i + 1}. ${p.feature}${p.source ? ` (${p.source})` : ''}`, `   ${p.message}`);
-    lines.push(`   Seen ${p.count} time${p.count === 1 ? '' : 's'}, last on ${new Date(p.lastSeen).toISOString().slice(0, 10)}`);
-    for (const frame of p.stack) lines.push(`   at ${frame}`);
-    lines.push('');
+    const when = new Date(p.lastSeen).toISOString().slice(0, 10);
+    lines.push(`${i + 1}. ${FEATURE_NAMES[p.feature]}: ${STEP_TEXT[p.step]}`);
+    lines.push(`   Code: ${p.feature}/${p.step}/${p.kind}. Seen ${p.count} time${p.count === 1 ? '' : 's'}, last on ${when}.`);
   });
-  lines.push('Account and post IDs, tokens, links, and quoted text were removed from this report.');
+  lines.push('', 'This report has only problem codes: no posts, muted words, or account details.');
   return lines.join('\n');
 }
 

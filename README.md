@@ -49,7 +49,7 @@ Load the cloned folder with **Load unpacked** as above.
 - Your own posts are never hidden.
 - tweetmuff never touches X's DOM. It works only on API responses, so changes to X's markup can't break it.
 - It's fail-safe. If a response, or part of one, doesn't look the way tweetmuff expects, that part is passed through exactly as X sent it, and everything else is still filtered. tweetmuff never makes X's own requests fail. A mute-list response in an unknown format never overwrites your saved list, and damaged saved settings only drop the broken entries.
-- Each such problem is noted in the **Status** section of the settings page, which otherwise says "Everything runs normally." From there you can copy a redacted report (no account or post IDs, tokens, links, or quoted text) and open a GitHub issue.
+- Each such problem is noted in the **Status** section of the settings page, which otherwise says "Everything runs normally." Problems are kept only as fixed codes (feature, step, error type), never error messages or anything from X's data. From there you can copy a report and open a GitHub issue.
 
 ### Matching
 

@@ -16,7 +16,7 @@
 <script>
   // Expected: xhrText / xhrJson / fetch == expected.afterFilter, imported == 3, domUntouched == true,
   // legacy == expected.legacy, cleanFetchUntouched == true,
-  // problems == one redacted record for the odd legacy response (feature "Other timelines", stack in src/core.js)
+  // problems == [{ feature: 'other', step: 'legacy', kind: 'TypeError' }] for the odd legacy response
   window.results = {};
   document.addEventListener('tweetmuff:imported', (e) => { results.imported = JSON.parse(e.detail).rules.length; });
   document.addEventListener('tweetmuff:problem', (e) => { (results.problems ??= []).push(JSON.parse(e.detail)); });

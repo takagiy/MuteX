@@ -24,23 +24,17 @@
     await chrome.storage.local.set({ state: { ...s, ...patch } });
   }
 
-  // Keeps a short log of problems for the options page: one record per distinct problem in this version, newest
-  // first. Everything is redacted again here, since events from the page can't be trusted to be clean.
+  // Keeps a short log of problems for the options page: one record per distinct { feature, step, kind } in this
+  // version, newest first. Only codes from core's fixed lists are accepted, so nothing else from the page is stored.
   async function recordProblem(p) {
-    const clip = (s, n) => core.redact(s).slice(0, n);
-    const problem = {
-      feature: clip(p.feature, 80),
-      source: clip(p.source, 80),
-      message: clip(p.message, 300),
-      stack: (Array.isArray(p.stack) ? p.stack : []).slice(0, 6).map((f) => clip(f, 120)),
-    };
-    const key = problem.feature + '\n' + problem.message;
+    if (!core.isProblem(p)) return;
+    const key = `${p.feature}/${p.step}/${p.kind}`;
     const { problems } = await chrome.storage.local.get('problems');
-    const list = (Array.isArray(problems) ? problems : []).filter((x) => x && x.version === VERSION);
+    const list = (Array.isArray(problems) ? problems : []).filter((x) => x && x.version === VERSION && core.isProblem(x));
     const now = Date.now();
-    const found = list.find((x) => x.key === key);
-    if (found) Object.assign(found, { count: (found.count || 1) + 1, lastSeen: now });
-    else list.push({ key, ...problem, version: VERSION, count: 1, firstSeen: now, lastSeen: now });
+    const found = list.find((x) => `${x.feature}/${x.step}/${x.kind}` === key);
+    if (found) Object.assign(found, { count: (Number(found.count) || 1) + 1, lastSeen: now });
+    else list.push({ feature: p.feature, step: p.step, kind: p.kind, version: VERSION, count: 1, firstSeen: now, lastSeen: now });
     list.sort((a, b) => b.lastSeen - a.lastSeen);
     await chrome.storage.local.set({ problems: list.slice(0, MAX_PROBLEMS) });
   }
@@ -63,7 +57,5 @@
   onPageEvent('tweetmuff:imported', async (d) => {
     if (Array.isArray(d.rules)) await update({ imported: d.rules, lastSync: Number(d.at) || Date.now() });
   });
-  onPageEvent('tweetmuff:problem', async (p) => {
-    if (typeof p.feature === 'string' && typeof p.message === 'string') await recordProblem(p);
-  });
+  onPageEvent('tweetmuff:problem', recordProblem);
 })();

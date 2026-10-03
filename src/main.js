@@ -11,18 +11,17 @@
 
   const STATE_KEY = 'tweetmuff:state';
   const MUTE_LIST_PATH = '/i/api/1.1/mutes/keywords/list.json';
-  const IMPORT = { feature: 'Importing muted words from X', source: 'mutes/keywords/list' };
 
-  // Each distinct problem is reported once per page: a console note, plus a redacted record the bridge keeps for
-  // the options page's Status section. where = { feature, source }.
+  // Each distinct problem is reported once per page: a console note for whoever is debugging locally, plus fixed codes
+  // ({ feature, step, kind }, no message or data) the bridge keeps for the options page's Status section.
   const reported = new Set();
-  function report(e, where = {}) {
+  function report(e, feature, step) {
     try {
-      const problem = core.toProblem(e, where.feature || 'Other', where.source);
-      const key = problem.feature + '\n' + problem.message;
+      const problem = core.problemOf(e, feature, step);
+      const key = `${problem.feature}/${problem.step}/${problem.kind}`;
       if (reported.has(key)) return;
       reported.add(key);
-      console.warn(`[tweetmuff] ${problem.feature}: left part of X's data unfiltered because it looked unexpected.`, e);
+      console.warn(`[tweetmuff] ${key}: left part of X's data unfiltered because it looked unexpected.`, e);
       emit('tweetmuff:problem', problem);
     } catch {}
   }
@@ -34,7 +33,7 @@
     try {
       matcher = core.compile(JSON.parse(localStorage.getItem(STATE_KEY) || 'null'));
     } catch (e) {
-      report(e, { feature: 'Settings' });
+      report(e, 'settings', 'settings');
     }
   }
 
@@ -56,7 +55,7 @@
 
   function filterObj(obj, url) {
     if (core.isEmpty(matcher)) return 0;
-    const onError = (e) => report(e, core.featureFor(url));
+    const onError = (e, step = 'response') => report(e, core.featureOf(url), step);
     try {
       return core.filterPayload(obj, matcher, { selfId: selfId(), onError });
     } catch (e) {
@@ -93,7 +92,7 @@
         });
       }
     } catch (e) {
-      report(e, { feature: 'Network hook', source: 'XMLHttpRequest' });
+      report(e, 'network', 'hook');
     }
     return origOpen.apply(this, arguments);
   };
@@ -115,7 +114,7 @@
       meta.out = out;
       return out;
     } catch (e) {
-      report(e, core.featureFor(xhr[META]?.url));
+      report(e, core.featureOf(xhr[META]?.url), 'response');
       return raw;
     }
   }
@@ -147,7 +146,7 @@
       Object.defineProperty(r2, 'url', { value: res.url });
       return r2;
     } catch (e) {
-      report(e, core.featureFor(url));
+      report(e, core.featureOf(url), 'response');
       return res;
     }
   };
@@ -161,9 +160,9 @@
     try {
       const rules = core.fromXMuteList(json);
       if (rules) emit('tweetmuff:imported', { rules, at: Date.now() });
-      else report(new Error("X's muted-words response had an unexpected format, so the saved list was kept"), IMPORT);
+      else report({ name: 'UnknownFormat' }, 'import', 'format'); // the saved list was kept
     } catch (e) {
-      report(e, IMPORT);
+      report(e, 'import', 'import');
     }
   }
 
