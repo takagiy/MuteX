@@ -34,7 +34,7 @@ Load the cloned folder with **Load unpacked** as above.
 | Part | World | Role |
 | --- | --- | --- |
 | `src/core.js` | MAIN | Keyword matching and timeline filtering. Pure logic, also used by the tests. |
-| `src/main.js` | MAIN | Hooks `XMLHttpRequest` / `fetch` at `document_start`, filters timeline responses, imports X's mute list, and runs a DOM safety net. |
+| `src/main.js` | MAIN | Hooks `XMLHttpRequest` / `fetch` at `document_start`, filters timeline responses, and imports X's mute list. Never touches X's DOM. |
 | `src/bridge.js` | ISOLATED | Syncs `chrome.storage` with the page hook. Rules are mirrored to x.com's `localStorage` so they are available at page start. |
 | `pages/` | – | Popup (enable toggle, word counts) and the options page (the word lists, extra local words). The popup never shows the words themselves. |
 
@@ -45,7 +45,7 @@ Load the cloned folder with **Load unpacked** as above.
 - If any tweet in a conversation module (a reply thread) matches, the whole module is dropped, so no broken thread line is left behind. In list-style modules such as **Discover more** under a post, only the matching posts are removed. If none are left, the whole section is removed so no bare header remains.
 - Cursor entries are always kept, so infinite scroll keeps working.
 - Your own posts are never hidden.
-- The DOM safety net hides any rendered tweet or trend that still matches. It only matters if X introduces a response shape the filter doesn't recognize.
+- tweetmuff never touches X's DOM. It works only on API responses, so changes to X's markup can't break it. If X changes a response shape so much that the filter no longer recognizes it, posts just show up as usual; the page doesn't break.
 
 ### Matching
 
@@ -105,7 +105,7 @@ git push origin v1.0.1
 
 The tests run against synthetic payloads shaped like X's timeline and mute-list responses (`test/fixtures.js`). No real account data is checked in.
 
-`test/harness/index.html` is a browser harness. Run `bun test/build-harness.js` to generate its payloads and copy the scripts, then serve `test/harness/` and open the page. It checks XHR (text and JSON), fetch, the passive import, and the DOM safety net.
+`test/harness/index.html` is a browser harness. Run `bun test/build-harness.js` to generate its payloads and copy the scripts, then serve `test/harness/` and open the page. It checks XHR (text and JSON), fetch, and the passive import, and that the DOM is left untouched.
 
 ## License
 

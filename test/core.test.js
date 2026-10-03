@@ -52,14 +52,15 @@ test('filters a mixed timeline', () => {
   expect(entries(data).filter((e) => e.content.cursorType).length).toBe(2);
 });
 
-test('exclude_following exempts followed authors and records ids', () => {
+test('exclude_following exempts followed authors', () => {
   const friend = user({ following: true });
-  const t = tweet({ text: 'spoiler from a friend', author: friend });
-  const d = homeTimeline([tweetEntry(t), tweetEntry(tweet({ text: 'spoiler from a stranger' }))]);
+  const d = homeTimeline([
+    tweetEntry(tweet({ text: 'spoiler from a friend', author: friend })),
+    tweetEntry(tweet({ text: 'spoiler from a stranger' })),
+  ]);
   const state = rulesOf([{ keyword: 'spoiler', excludeFollowing: true }]);
-  const exempt = new Set();
-  expect(core.filterPayload(d, core.compile(state), { exempt })).toBe(1);
-  expect(exempt.has(t.rest_id)).toBe(true);
+  expect(core.filterPayload(d, core.compile(state))).toBe(1);
+  expect(JSON.stringify(contentEntries(d))).toContain('spoiler from a friend');
 
   const d2 = homeTimeline([tweetEntry(tweet({ text: 'spoiler', author: user({ following: true }) }))]);
   expect(core.filterPayload(d2, core.compile({ ...state, applyToFollowing: true }))).toBe(1);
