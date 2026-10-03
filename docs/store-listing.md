@@ -93,7 +93,7 @@ Chrome Web Store policy requires disclosing data that is handled locally, even i
 | Website content | **Yes** | Reads and modifies X's timeline API responses in the page to remove posts that contain muted words. Reads the user's muted-word list from X's settings response and stores it locally. |
 | Health information | No | |
 | Financial and payment information | No | |
-| Authentication information | No | Auth cookies and tokens are not used. |
+| Authentication information | No | No passwords, auth cookies, tokens, or request headers are read. The only cookie read is `twid` (an account ID, see PII), fetched alone through the Cookie Store API so no other cookie is ever accessed. |
 | Personal communications | No | Direct messages are not touched. |
 | Location | No | |
 | Web history | No | |
