@@ -11,9 +11,10 @@ tweetmuff does not transmit, sell, or share any user data. Everything it handles
 
 tweetmuff only works on x.com. There it handles the following, all locally in your browser:
 
+- **X's network requests.** It watches the requests X's web app makes on x.com and checks their addresses to find the ones that carry timeline data. The requests aren't recorded.
 - **Timeline content.** It reads the timeline data that X's web app has already received, such as posts, replies, search results, trends, and search suggestions. It removes items that contain your muted words before they are displayed. The content is not stored or sent anywhere.
 - **Your muted words.** When X's web app loads your muted-word list (for example on Settings › Muted words), tweetmuff reads that response and saves the words and their options. It also saves the extra words you add on the settings page and your settings (on/off, "apply to accounts you follow"). These are stored in the extension's local storage (`chrome.storage.local`). A copy is also kept in x.com's `localStorage`, so the filter is ready as soon as the page starts loading.
-- **Your X account ID.** It reads your numeric account ID from X's `twid` cookie, only so that your own posts are never hidden. The ID is not stored.
+- **Your X account ID.** It reads your numeric account ID from X's `twid` cookie, only so that your own posts are never hidden. This ID identifies your X account, so it counts as personal information. It's used only inside your browser, and it's never stored or sent anywhere.
 - **Problem log.** If part of X's data doesn't look the way tweetmuff expects, tweetmuff leaves that part unfiltered and saves a short code for it in `chrome.storage.local`. The code says which feature was affected, which step failed, and the type of error, for example `home/entries/TypeError`. It also saves how often that happened and when. No error messages, posts, words, links, or account details are saved. You can see these codes in the Status section of the settings page, copy them to report a problem, or clear them. They are never sent anywhere automatically, and codes from older versions are discarded.
 
 ## Data the extension transmits
