@@ -134,29 +134,14 @@ section::before {
 .toolbar .action img { width: 28px; height: 28px; }
 .popup { width: 480px; margin: 12px 0 0; border-radius: 14px; display: block; }
 
-/* Options slide: a browser window showing the options page */
+/* Options slide: a browser window showing the whole options page. It may rise into the header's empty right
+   side; the page image is scaled to the window height so it is never cut off. */
 .window {
-  width: 644px;
   border-radius: 16px;
   overflow: hidden;
   background: #fff;
-  align-self: flex-start;
-  margin-top: 112px;
 }
-.window .tabs { height: 46px; background: #dfe7e3; display: flex; align-items: flex-end; padding: 0 16px; }
-.window .tab {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 12px 12px 0 0;
-  background: #fff;
-  font-size: 16px;
-  font-weight: 500;
-}
-.window .tab img { width: 20px; height: 20px; }
-.window .bar { padding: 8px 16px 10px; }
-.window .omnibox { height: 36px; font-size: 15px; }
+.window .toolbar { height: 52px; border-radius: 0; border-bottom: 1px solid #e6ecef; }
+.window .omnibox { height: 34px; font-size: 15px; }
 .window .omnibox b { color: var(--ink); font-weight: 600; margin-right: 10px; }
-.window .page { display: block; width: 644px; }
+.window .page { display: block; height: 708px; width: auto; }
