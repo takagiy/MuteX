@@ -5,33 +5,20 @@
 
 tweetmuff works only on x.com. It handles the data below only to filter posts and to show its own status on its settings page. It never sends anything anywhere: it makes no network requests of its own and has no server.
 
-## Personally identifiable information
-
-- **X account ID** (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie and uses the ID only while the page is open. It's never stored or sent.
-
-## Website content
-
-Read in the page before X displays it, to remove items that contain your muted words. Nothing here is stored or sent, except your muted-word list.
-
-- Posts in timelines: home, profiles, lists, bookmarks, and notifications
-- Replies and "Discover more" under a post
-- Search results, and search suggestions (topics, hashtags, and events)
-- Trends and Explore news cards
-- Your muted-word list on X, when X's web app loads it (for example on Settings › Muted words). The words and their options are saved on your device (see [Stored on your device](#stored-on-your-device)).
-
-## User activity
-
-tweetmuff watches the requests X's web app makes and checks their addresses to find the ones below. It reads only the responses to those. The requests themselves aren't recorded.
-
-| Requests | Why |
-| --- | --- |
-| `x.com/i/api/graphql/…` | Timelines to filter (home, replies, search, profiles, Explore, and others) |
-| `x.com/i/api/2/…` | Older timeline formats to filter, such as notifications |
-| `x.com/i/api/1.1/search/typeahead.json` | Search suggestions to filter |
-| `api.x.com/graphql/…`, `api.x.com/2/…` | The same APIs on X's API host (also matched on api.twitter.com) |
-| `x.com/i/api/1.1/mutes/keywords/list.json` | Your muted-word list, to import it |
-
-## Not handled
+- **Personally identifiable information**
+  - X account ID (the numeric ID in X's `twid` cookie): read so that your own posts are never hidden. tweetmuff reads only this one cookie and uses the ID only while the page is open. It's never stored or sent.
+- **Website content**: read in the page before X displays it, to remove items that contain your muted words. Nothing here is stored or sent, except your muted-word list.
+  - Posts in timelines: home, profiles, lists, bookmarks, and notifications
+  - Replies and "Discover more" under a post
+  - Search results, and search suggestions (topics, hashtags, and events)
+  - Trends and Explore news cards
+  - Your muted-word list on X, when X's web app loads it (for example on Settings › Muted words). The words and their options are saved on your device (see [Stored on your device](#stored-on-your-device)).
+- **User activity**: tweetmuff watches the requests X's web app makes and checks their addresses to find the ones below. It reads only the responses to those. The requests themselves aren't recorded.
+  - `x.com/i/api/graphql/…`: timelines to filter (home, replies, search, profiles, Explore, and others)
+  - `x.com/i/api/2/…`: older timeline formats to filter, such as notifications
+  - `x.com/i/api/1.1/search/typeahead.json`: search suggestions to filter
+  - `api.x.com/graphql/…` and `api.x.com/2/…`: the same APIs on X's API host (also matched on api.twitter.com)
+  - `x.com/i/api/1.1/mutes/keywords/list.json`: your muted-word list, to import it
 
 tweetmuff doesn't handle health, financial or payment, authentication, personal communications, location, or web history data. It reads no passwords, auth cookies, tokens, or request headers, doesn't touch direct messages, and keeps no list of the pages you visit.
 
